@@ -196,25 +196,10 @@ Page {
                         Layout.fillWidth: true
                         spacing: units.gu(1)
 
-                        ColumnLayout {
+                        Label {
                             Layout.fillWidth: true
-                            spacing: units.gu(0.25)
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: i18n.tr("Upstream-compatible swipe direction")
-                                font.bold: true
-                                wrapMode: Text.WordWrap
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: page.swipeActionLayout === "android"
-                                    ? i18n.tr("Swipe right to star, left to mark read or unread.")
-                                    : i18n.tr("Swipe right to mark read or unread, left to star.")
-                                wrapMode: Text.WordWrap
-                                opacity: 0.72
-                            }
+                            text: i18n.tr("Reverse left/right actions")
+                            wrapMode: Text.WordWrap
                         }
 
                         Switch {
@@ -223,12 +208,6 @@ Page {
                         }
                     }
 
-                    Label {
-                        Layout.fillWidth: true
-                        text: i18n.tr("Ubuntu Touch style is the default. Enable upstream-compatible direction if you prefer the upstream News swipe behavior.")
-                        wrapMode: Text.WordWrap
-                        opacity: 0.68
-                    }
                 }
             }
 

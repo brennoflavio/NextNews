@@ -10,6 +10,7 @@ Page {
         { "code": "", "label": i18n.tr("Follow system language"), "detail": i18n.tr("Default") },
         { "code": "en", "label": "English", "detail": i18n.tr("Built-in source language") },
         { "code": "sv", "label": "Svenska", "detail": "" },
+        { "code": "ca", "label": "Catala", "detail": "" },
         { "code": "de", "label": "Deutsch", "detail": i18n.tr("AI-assisted translation") },
         { "code": "fr", "label": "Francais", "detail": i18n.tr("AI-assisted translation") },
         { "code": "nl", "label": "Nederlands", "detail": i18n.tr("AI-assisted translation") },

@@ -2,6 +2,7 @@
 
 #include <QGuiApplication>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QQuickView>
 #include <QDir>
 #include <QFile>
@@ -100,6 +101,7 @@ QString localeForLanguageCode(const QString &languageCode)
     static const QHash<QString, QString> localeMap = {
         {QStringLiteral("en"), QStringLiteral("C.UTF-8")},
         {QStringLiteral("sv"), QStringLiteral("sv_SE.UTF-8")},
+        {QStringLiteral("ca"), QStringLiteral("ca_ES.UTF-8")},
         {QStringLiteral("de"), QStringLiteral("de_DE.UTF-8")},
         {QStringLiteral("fr"), QStringLiteral("fr_FR.UTF-8")},
         {QStringLiteral("nl"), QStringLiteral("nl_NL.UTF-8")},
@@ -157,6 +159,7 @@ int main(int argc, char *argv[])
     ContentHubBridge contentHubBridge;
 
     QQuickView view;
+    view.engine()->addImportPath(QStringLiteral("qrc:/"));
     view.rootContext()->setContextProperty(QStringLiteral("contentHubBridge"), &contentHubBridge);
     view.rootContext()->setContextProperty(QStringLiteral("nextnewsAppVersion"), QStringLiteral(NEXTNEWS_VERSION));
     view.rootContext()->setContextProperty(QStringLiteral("desktopLarge"), desktopLarge);

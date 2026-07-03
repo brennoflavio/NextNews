@@ -11,7 +11,7 @@ NextNews is not affiliated with, endorsed by, or sponsored by Nextcloud GmbH or 
 Current V1 scaffold:
 
 - Use an existing Nextcloud or ownCloud account from Ubuntu Touch Online Accounts.
-- Authorize the app with the same Online Accounts setup flow used by NextNotes.
+- Authorize the app with the shared OS-account-only Online Accounts flow used by the Nextcloud app suite.
 - Show the selected account avatar from the Nextcloud account when available.
 - Use runtime-only Online Accounts credentials.
 - Read the server address from the selected Ubuntu Touch account, with an editable server-address field if the system account does not expose the correct host.
@@ -43,7 +43,7 @@ Current V1 scaffold:
 - Open article links from the article detail page.
 - Share article title and link to other Ubuntu Touch apps through Content Hub.
 - Use a local SQLite cache through Qt LocalStorage.
-- Show an About page with version, license, copyright, and Nextcloud affiliation disclaimer. Longer product/license/disclaimer text intentionally remains in English across translations.
+- Show an About page with version, license, copyright, contributors, and Nextcloud affiliation disclaimer. Longer product/license/disclaimer text intentionally remains in English across translations.
 
 ## Not Included
 
@@ -71,6 +71,7 @@ Current language choices:
 - Follow system language
 - English
 - Swedish
+- Catalan
 - German
 - French
 - Dutch
@@ -79,7 +80,7 @@ Current language choices:
 - Spanish
 - Finnish
 
-Swedish has an initial translation for the current UI. German, French, Dutch, Danish, Norwegian Bokmal, Spanish, and Finnish currently use partial AI-assisted starter translations and need review by fluent speakers. Untranslated strings fall back to the built-in English source text.
+Swedish and Catalan have initial translations for the current UI. German, French, Dutch, Danish, Norwegian Bokmal, Spanish, and Finnish currently use partial AI-assisted starter translations and need review by fluent speakers. Untranslated strings fall back to the built-in English source text.
 
 Translations are gettext `.po` files under `po/`. Improvements are welcome by editing the relevant language file or adding a new `.po` catalog based on `po/nextnews.cloudsite.pot`.
 
@@ -90,7 +91,9 @@ NextNews is a Clickable QML/C++ Ubuntu Touch application.
 Important areas:
 
 - `qml/pages/`: Ubuntu Touch UI pages.
-- `qml/backend/AccountSessionAdapter.qml`: Online Accounts runtime authentication.
+- `qml/backend/AccountSessionAdapter.qml`: thin NextNews wrapper around the shared Online Accounts runtime authentication adapter.
+- `vendor/NextCommon/`: vendored versioned shared suite module used for account/session UI and helpers. This is source-vendored, not a git submodule.
+- `qml/UTControls/`: vendored versioned Ubuntu Touch controls module.
 - `qml/backend/NewsApiClient.qml`: Nextcloud News API requests.
 - `qml/backend/NewsApiCore.js`: URL, payload, and JSON parsing helpers.
 - `qml/backend/NewsCache.qml`: local SQLite cache.
@@ -209,7 +212,7 @@ NextNews does not request unconfined mode.
 
 ## Current Status
 
-Initial NextNews scaffold is complete. The app builds as `nextnews.cloudsite`, includes a News-specific API/cache/controller boundary, passes local contract tests, and has been installed on Ubuntu Touch for Online Accounts testing. The account flow is intentionally OS-account-only and does not expose manual login. Account switching clears stale in-memory credentials and ignores delayed auth/API responses from the previous account. Feed creation, folder creation, feed/folder rename, feed move/delete, folder delete, active sync settings, unread navigation counts, search scope, sort settings, direct browser opening, and mail sharing are implemented. Version 0.1.8 is prepared as the next public bugfix release after 0.1.7, with icon/banner polish, drawer/account styling updates, About text cleanup, and sync status color cleanup after resolving pending local changes. The experimental mark-read-while-scrolling option is disabled and hidden because device testing showed unreliable behavior; it is deferred to a future release.
+NextNews builds as `nextnews.cloudsite`, includes a News-specific API/cache/controller boundary, passes local contract tests, and uses the shared vendored NextCommon account/session modules plus vendored UTControls. The account flow is intentionally OS-account-only and does not expose manual login. Account switching clears stale in-memory credentials and ignores delayed auth/API responses from the previous account. Feed creation, folder creation, feed/folder rename, feed move/delete, folder delete, active sync settings, unread navigation counts, search scope, sort settings, direct browser opening, Content Hub article sharing, article-detail link handling, and Catalan language support are implemented. The experimental mark-read-while-scrolling option is disabled and hidden because device testing showed unreliable behavior; it is deferred to a future release.
 
 ## License
 

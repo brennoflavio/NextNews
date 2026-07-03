@@ -55,7 +55,7 @@ class NewsApiCoreBehaviorTests(unittest.TestCase):
             var folders = parseFolders(JSON.stringify({ folders: [{ id: 1, name: "Tech" }] }));
             var createdFolders = parseFolders(JSON.stringify([{ id: 4, name: "Created" }]));
             var feeds = parseFeeds(JSON.stringify({ feeds: [{ id: 2, folderId: 1, title: "Feed", url: "https://example.test", unreadCount: 3 }] }));
-            var items = parseItems(JSON.stringify({ items: [{ id: 9, feedId: 2, guidHash: "h", title: "Title", body: "<p>Hello&nbsp;world</p>", pubDate: 10, unread: true, starred: false }] }));
+            var items = parseItems(JSON.stringify({ items: [{ id: 9, feedId: 2, guidHash: "h", title: "Title", body: "<p>CNN Iran&#039;s &quot;test&quot;&nbsp;world</p>", pubDate: 10, unread: true, starred: false }] }));
             console.log(JSON.stringify({
                 foldersOk: folders.ok,
                 folderName: folders.folders[0].name,
@@ -74,7 +74,7 @@ class NewsApiCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(result["createdFolderName"], "Created")
         self.assertEqual(result["feedTitle"], "Feed")
         self.assertEqual(result["itemTitle"], "Title")
-        self.assertEqual(result["itemPreview"], "Hello world")
+        self.assertEqual(result["itemPreview"], "CNN Iran's \"test\" world")
         self.assertTrue(result["itemUnread"])
 
 

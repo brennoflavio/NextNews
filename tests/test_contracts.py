@@ -25,46 +25,62 @@ class ProjectIdentityTests(unittest.TestCase):
 
     def test_online_accounts_service_ids_are_current(self):
         page = read_text("qml/pages/AccountSelectionPage.qml")
+        common_page = read_text("vendor/NextCommon/qml/NextCommon/AccountPage.qml")
 
+        self.assertIn('import "qrc:/NextCommon" as NextCommon', page)
+        self.assertIn("NextCommon.AccountPage", page)
+        self.assertIn('appName: "NextNews"', page)
+        self.assertIn('logPrefix: "NextNews"', page)
         self.assertIn("nextnews.cloudsite_nextnews", page)
         self.assertIn("nextnews.cloudsite_nextnews_nextcloud", page)
         self.assertIn("nextnews.cloudsite_nextnews_owncloud", page)
-        self.assertIn("findPreferredAppService", page)
-        self.assertIn("service-not-enabled", page)
-        self.assertIn("openSystemAccountsDialog", page)
-        self.assertIn('Qt.openUrlExternally("settings://system/online-accounts")', page)
-        self.assertIn("function systemAccountsDialogText()", page)
-        self.assertIn("function retryAfterSystemApproval()", page)
-        self.assertIn("waitingForSystemApproval", page)
-        self.assertIn("selectedHasServiceHandle", page)
-        self.assertIn("if (!selectedEnabled && !selectedHasServiceHandle)", page)
-        self.assertIn("if (selectedEnabled || selectedHasServiceHandle)", page)
-        self.assertIn("page.waitingForSystemApproval = true", page)
-        self.assertIn("PopupUtils.open(openSystemAccountsDialog)", page)
-        self.assertIn("visible: page.selectedAccountId > 0 && page.waitingForSystemApproval", page)
-        self.assertIn("verify it automatically", page)
-        self.assertIn('i18n.tr("Open system accounts")', page)
-        self.assertIn("clearSelectedAccount()", page)
         self.assertIn("newsController.applyAccountSelection(", page)
-        self.assertIn("authorizationRunning", page)
-        self.assertIn("if (page.authorizationRunning)", page)
-        self.assertIn("page.selectAccount(", page)
-        self.assertIn("function restoreSelectedAccountFromSettings()", page)
-        self.assertIn("Open Ubuntu Touch System Settings > Accounts", page)
-        self.assertNotIn("select it again", page)
-        self.assertNotIn("selectedService.updateServiceEnabled(true)", page)
-        self.assertNotIn('text: row.isSelected ? i18n.tr("Selected") : i18n.tr("Use")', page)
-        self.assertNotIn("accountSetup.exec()", page)
-        self.assertNotIn("Discovered services:", page)
-        self.assertNotIn("Diagnostics", page)
+
+        self.assertIn("findPreferredAppService", common_page)
+        self.assertIn("openSystemAccountsDialog", common_page)
+        self.assertIn('Qt.openUrlExternally("settings:///system/online-accounts")', common_page)
+        self.assertIn("function systemAccountsDialogText()", common_page)
+        self.assertIn("function retryAfterSystemApproval()", common_page)
+        self.assertIn("waitingForSystemApproval", common_page)
+        self.assertIn("selectedHasServiceHandle", common_page)
+        self.assertIn("if (!selectedEnabled && !selectedHasServiceHandle)", common_page)
+        self.assertIn("if (selectedEnabled || selectedHasServiceHandle)", common_page)
+        self.assertIn("page.waitingForSystemApproval = true", common_page)
+        self.assertIn("PopupUtils.open(openSystemAccountsDialog)", common_page)
+        self.assertIn("visible: page.waitingForSystemApproval", common_page)
+        self.assertIn("verify it automatically", common_page)
+        self.assertIn("clearSelectedAccount()", common_page)
+        self.assertIn("authorizationRunning", common_page)
+        self.assertIn("if (page.authorizationRunning)", common_page)
+        self.assertIn("page.selectAccount(", common_page)
+        self.assertIn("function restoreSelectedAccountFromSettings()", common_page)
+        self.assertIn("Open Ubuntu Touch System Settings", common_page)
+        self.assertNotIn("select it again", common_page)
+        self.assertNotIn("selectedService.updateServiceEnabled(true)", common_page)
+        self.assertNotIn('text: row.isSelected ? i18n.tr("Selected") : i18n.tr("Use")', common_page)
+        for forbidden in [
+            "Lomiri.OnlineAccounts.Client",
+            "\n    Setup {",
+            "accountSetup.exec()",
+            "Discovered services:",
+            "Diagnostics",
+            "app password",
+            "manual login",
+        ]:
+            self.assertNotIn(forbidden, page)
+            self.assertNotIn(forbidden, common_page)
         self.assertNotIn("nextnotes", page.lower())
 
         session = read_text("qml/backend/AccountSessionAdapter.qml")
+        common_session = read_text("vendor/NextCommon/qml/NextCommon/AccountSessionAdapter.qml")
         controller = read_text("qml/backend/NewsController.qml")
-        self.assertIn("AccountServiceModel", session)
-        self.assertIn("var accountChanged = currentAccountId !== accountId", session)
-        self.assertIn("cachedSecret = \"\"", session)
-        self.assertIn("pendingCallback = null", session)
+        self.assertIn('import "qrc:/NextCommon" as NextCommon', session)
+        self.assertIn("NextCommon.AccountSessionAdapter", session)
+        self.assertIn('logPrefix: "NextNews"', session)
+        self.assertIn("AccountServiceModel", common_session)
+        self.assertIn("var accountChanged = currentAccountId !== accountId", common_session)
+        self.assertIn("cachedSecret = \"\"", common_session)
+        self.assertIn("pendingCallback = null", common_session)
         self.assertIn("accountSettings.serviceId.length > 0", controller)
 
     def test_apparmor_is_minimal(self):
@@ -94,8 +110,34 @@ class ProjectIdentityTests(unittest.TestCase):
             "backend/NewsApiCore.js",
             "backend/NewsController.qml",
             "backend/SyncPlanner.js",
+            'alias="NextCommon/qmldir"',
+            'alias="NextCommon/VERSION"',
+            'alias="NextCommon/AccountPage.qml"',
+            'alias="NextCommon/AccountSessionAdapter.qml"',
+            'alias="NextCommon/MainTopBar.qml"',
+            'alias="NextCommon/SettingsShell.qml"',
+            'alias="NextCommon/UrlHelpers.js"',
+            "UTControls/qmldir",
+            "UTControls/VERSION",
+            "UTControls/AppButton.qml",
+            "UTControls/ConfirmDialog.qml",
+            "UTControls/TreeReorderableListView.qml",
         ]:
             self.assertIn(filename, qrc)
+
+    def test_vendored_modules_are_source_versioned_not_git_submodules(self):
+        qrc = read_text("qml/qml.qrc")
+        main = read_text("main.cpp")
+        cmake = read_text("CMakeLists.txt")
+
+        self.assertEqual(read_text("vendor/NextCommon/qml/NextCommon/VERSION").strip(), "0.2.1")
+        self.assertEqual(read_text("qml/UTControls/VERSION").strip(), "0.2.4")
+        self.assertFalse((ROOT / "vendor/NextCommon/.git").exists())
+        self.assertFalse((ROOT / ".gitmodules").exists())
+        self.assertIn('view.engine()->addImportPath(QStringLiteral("qrc:/"))', main)
+        self.assertIn("vendor/NextCommon/qml/NextCommon/*.qml", cmake)
+        self.assertIn("vendor/NextCommon/js/*.js", cmake)
+        self.assertIn('alias="NextCommon/qmldir"', qrc)
 
     def test_desktop_test_auth_is_opt_in_and_env_backed(self):
         main = read_text("main.cpp")
@@ -120,9 +162,9 @@ class ProjectIdentityTests(unittest.TestCase):
         for snippet in [
             "envTestAuthEnabled",
             "desktop-test-env",
-            "auth using desktop test environment credentials",
+            "envTestSecret",
         ]:
-            self.assertIn(snippet, session)
+            self.assertIn(snippet, session + read_text("vendor/NextCommon/qml/NextCommon/AccountSessionAdapter.qml"))
 
         self.assertIn("accountSession.envTestAuthEnabled", controller)
         self.assertIn("accountSettings.serverUrl = serverUrl", controller)
@@ -145,7 +187,7 @@ class ProjectIdentityTests(unittest.TestCase):
         language_page = read_text("qml/pages/LanguageSelectionPage.qml")
         readme = read_text("README.md")
 
-        for language_code in ["sv", "de", "fr", "nl", "da", "nb", "es", "fi"]:
+        for language_code in ["sv", "ca", "de", "fr", "nl", "da", "nb", "es", "fi"]:
             self.assertIn(f'"{language_code}"', language_page)
             self.assertIn(f'QStringLiteral("{language_code}")', main)
             self.assertTrue((ROOT / "po" / f"{language_code}.po").exists())
@@ -154,7 +196,7 @@ class ProjectIdentityTests(unittest.TestCase):
             "AI-assisted translation",
             "Some translations are AI-assisted and not fully reviewed",
             "Translations are gettext `.po` files under `po/`",
-            "German, French, Dutch, Danish, Norwegian Bokmal, Spanish, and Finnish",
+            "Catalan",
         ]:
             self.assertIn(snippet, language_page + readme)
 
@@ -442,13 +484,15 @@ class UiContractTests(unittest.TestCase):
 
     def test_account_page_has_editable_server_address_without_manual_login(self):
         page = read_text("qml/pages/AccountSelectionPage.qml")
+        common_page = read_text("vendor/NextCommon/qml/NextCommon/AccountPage.qml")
 
-        self.assertIn("Server address", page)
-        self.assertIn("serverUrlField", page)
-        self.assertIn("serverUrlCommitTimer", page)
-        self.assertIn("commitServerUrlInput", page)
-        self.assertIn("This app uses Ubuntu Touch Online Accounts", page)
-        self.assertNotIn("app password", page.lower())
+        self.assertIn("NextCommon.AccountPage", page)
+        self.assertIn("Server address", common_page)
+        self.assertIn("serverUrlField", common_page)
+        self.assertIn("serverUrlCommitTimer", common_page)
+        self.assertIn("commitServerUrlInput", common_page)
+        self.assertIn("This app uses Ubuntu Touch Online Accounts", common_page)
+        self.assertNotIn("app password", page.lower() + common_page.lower())
 
     def test_settings_page_controls_sync_search_and_reading_options(self):
         page = read_text("qml/pages/SettingsPage.qml")
@@ -462,8 +506,7 @@ class UiContractTests(unittest.TestCase):
             "Active sync interval",
             "Oldest articles first",
             "Open articles in browser directly",
-            "Upstream-compatible swipe direction",
-            "Ubuntu Touch style is the default",
+            "Reverse left/right actions",
             "Title",
             "Content",
             "Both",
@@ -505,12 +548,13 @@ class UiContractTests(unittest.TestCase):
 
     def test_account_page_and_controller_match_avatar_contract(self):
         account_page = read_text("qml/pages/AccountSelectionPage.qml")
+        common_page = read_text("vendor/NextCommon/qml/NextCommon/AccountPage.qml")
         controller = read_text("qml/backend/NewsController.qml")
 
-        self.assertNotIn("Server from Ubuntu Touch account", account_page)
-        self.assertIn("avatarUrl(accountSettings.serverUrl, userName)", account_page)
-        self.assertIn("property string avatarUrl", account_page)
-        self.assertIn("/index.php/avatar/", account_page)
+        self.assertNotIn("Server from Ubuntu Touch account", account_page + common_page)
+        self.assertIn("avatarUrl(accountSettings.serverUrl, userName)", common_page)
+        self.assertIn("accountSettings.avatarUrl", common_page)
+        self.assertIn("/index.php/avatar/", common_page)
         self.assertIn("accountSettings.avatarUrl", controller)
         self.assertIn("function avatarUrl", controller)
 
@@ -528,10 +572,19 @@ class UiContractTests(unittest.TestCase):
             "Unstar",
             "Open",
             "Share",
+            "feedFavicon",
+            "feedInitial",
+            "Unknown feed",
+            "Text.RichText",
+            "non-starred",
+            "#f6c343",
+            "linkifyPlainText",
+            "onLinkActivated: Qt.openUrlExternally(link)",
             "shareArticle",
             "ArticleShareExportPage.qml",
             "ArticleShareExportPageUbuntu.qml",
-            "stripHtml",
+            "articleBodyRichText",
+            "escapeHtml",
         ]:
             self.assertIn(snippet, page)
         self.assertNotIn("mailto:", page)
@@ -559,7 +612,8 @@ class UiContractTests(unittest.TestCase):
             "qrc:/assets/logo.svg",
         ]:
             self.assertIn(snippet, page)
-        self.assertIn('set(NEXTNEWS_VERSION "0.2.0")', cmake)
+        self.assertIn('set(NEXTNEWS_VERSION "0.3.0")', cmake)
+        self.assertIn("## 0.3.0", changelog)
         self.assertIn("## 0.2.0", changelog)
         self.assertIn("## 0.1.8", changelog)
         self.assertIn("## 0.1.7", changelog)

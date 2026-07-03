@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-07-03
+
+Polish and platform-alignment release.
+
+- Ports account selection and runtime authentication to the shared versioned NextApps module used by the app suite.
+- Adds the versioned Ubuntu Touch controls module used by newer NextApps UI.
+- Improves Settings wording and layout consistency, including the swipe-direction option.
+- Improves article detail with feed identity, author/date metadata, better link handling, and fixed HTML entity decoding.
+- Adds Catalan as a visible language option.
+
 ## 0.2.0 - 2026-06-26
 
 - Added Ubuntu Touch Content Hub article sharing.

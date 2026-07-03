@@ -10,7 +10,7 @@ find_package(Qt5Quick REQUIRED)
 
 set(PROJECT_NAME "nextnews")
 set(FULL_PROJECT_NAME "nextnews.cloudsite")
-set(NEXTNEWS_VERSION "0.2.0")
+set(NEXTNEWS_VERSION "0.3.0")
 set(DATA_DIR /)
 set(DESKTOP_FILE_NAME ${PROJECT_NAME}.desktop)
 
@@ -36,6 +36,8 @@ file(GLOB_RECURSE I18N_SRC_FILES
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     qml/*.qml
     qml/*.js
+    vendor/NextCommon/qml/NextCommon/*.qml
+    vendor/NextCommon/js/*.js
 )
 
 add_subdirectory(po)
@@ -44,6 +46,8 @@ file(GLOB_RECURSE PROJECT_SRC_FILES
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     qml/*.qml
     qml/*.js
+    vendor/NextCommon/qml/NextCommon/*.qml
+    vendor/NextCommon/js/*.js
     assets/*
     *.json
     *.json.in

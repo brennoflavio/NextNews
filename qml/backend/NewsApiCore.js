@@ -220,12 +220,31 @@ function parseItem(row) {
 }
 
 function stripHtml(value) {
-    return String(value || "")
+    return decodeHtmlEntities(String(value || "")
         .replace(/<[^>]+>/g, " ")
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
+        .replace(/&nbsp;/g, " "))
         .replace(/\s+/g, " ")
         .trim()
+}
+
+function decodeHtmlEntities(value) {
+    var named = {
+        "amp": "&",
+        "apos": "'",
+        "gt": ">",
+        "lt": "<",
+        "nbsp": " ",
+        "quot": "\""
+    }
+
+    return String(value || "")
+        .replace(/&#x([0-9a-fA-F]+);/g, function(match, code) {
+            return String.fromCharCode(parseInt(code, 16))
+        })
+        .replace(/&#([0-9]+);/g, function(match, code) {
+            return String.fromCharCode(parseInt(code, 10))
+        })
+        .replace(/&([a-zA-Z]+);/g, function(match, name) {
+            return named[name] !== undefined ? named[name] : match
+        })
 }
