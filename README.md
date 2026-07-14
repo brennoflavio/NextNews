@@ -79,8 +79,12 @@ Current language choices:
 - Norwegian Bokmal
 - Spanish
 - Finnish
+- Italian
+- Polish
+- Russian
+- Ukrainian
 
-Swedish and Catalan have initial translations for the current UI. German, French, Dutch, Danish, Norwegian Bokmal, Spanish, and Finnish currently use partial AI-assisted starter translations and need review by fluent speakers. Untranslated strings fall back to the built-in English source text.
+Swedish and Catalan have initial translations for the current UI. German, French, Dutch, Danish, Norwegian Bokmal, Spanish, Finnish, Italian, Polish, Russian, and Ukrainian currently use AI-assisted translations and need review by fluent speakers. Untranslated strings fall back to the built-in English source text.
 
 Translations are gettext `.po` files under `po/`. Improvements are welcome by editing the relevant language file or adding a new `.po` catalog based on `po/nextnews.cloudsite.pot`.
 

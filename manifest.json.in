@@ -1,6 +1,6 @@
 {
     "name": "nextnews.cloudsite",
-    "description": "Native but simple Ubuntu Touch client for Nextcloud News.",
+    "description": "Native Ubuntu Touch client for Nextcloud News.",
     "architecture": "$ENV{ARCH}",
     "title": "NextNews",
     "hooks": {

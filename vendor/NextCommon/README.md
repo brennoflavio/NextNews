@@ -54,9 +54,10 @@ Import from QML:
 import "qrc:/NextCommon" as NextCommon
 ```
 
-Each app pins the exact NextCommon version/commit it has tested. Apps in the
-NextApps suite may intentionally use different NextCommon versions until each
-app is upgraded and verified. See `docs/versioning.md`.
+Each app pins its submodule to the exact tagged NextCommon release it has
+tested (e.g. `v0.3.0`), not an arbitrary commit. Apps in the NextApps suite
+may intentionally use different NextCommon versions until each app is
+upgraded and verified. See `docs/versioning.md`.
 
 ## License
 

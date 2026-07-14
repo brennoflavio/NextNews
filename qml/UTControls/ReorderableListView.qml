@@ -60,7 +60,10 @@ Item {
     property real lastPointerLocalY: 0
     property int autoScrollDirection: 0
     property real displacedPulseValue: 0
-    property bool suppressPullRefreshAfterDrag: false
+    property real suppressPullRefreshUntil: 0
+    function isPullRefreshSuppressed() {
+        return Date.now() < suppressPullRefreshUntil
+    }
 
     onModelChanged: rebuildVisualModel()
     Component.onCompleted: rebuildVisualModel()
@@ -329,7 +332,7 @@ Item {
         var item = draggedItem
         var moved = dragMoved
         var signalEmitted = dragSignalEmitted
-        suppressPullRefreshAfterDrag = true
+        suppressPullRefreshUntil = Date.now() + 350
         dragActive = false
         autoScrollTimer.stop()
         draggedItem = ({})
@@ -338,7 +341,6 @@ Item {
         dragMoved = false
         dragSignalEmitted = false
         list.pullRefreshArmed = false
-        suppressPullRefreshTimer.restart()
 
         if (selectOnNoMove && !signalEmitted && from === to && selectionEnabled) {
             toggleRowSelection(from, item)
@@ -394,12 +396,6 @@ Item {
         }
     }
 
-    Timer {
-        id: suppressPullRefreshTimer
-        interval: 350
-        onTriggered: root.suppressPullRefreshAfterDrag = false
-    }
-
     ListView {
         id: list
         anchors.fill: parent
@@ -412,7 +408,7 @@ Item {
         property bool pullRefreshArmed: false
 
         onContentYChanged: {
-            if (root.suppressPullRefreshAfterDrag) {
+            if (root.isPullRefreshSuppressed()) {
                 pullRefreshArmed = false
                 return
             }
@@ -422,7 +418,7 @@ Item {
         }
 
         onMovementEnded: {
-            if (root.suppressPullRefreshAfterDrag) {
+            if (root.isPullRefreshSuppressed()) {
                 pullRefreshArmed = false
                 return
             }
@@ -596,13 +592,11 @@ Item {
                     if (row.longPressCanDrag) {
                         var p = mapToItem(root, mouse.x, mouse.y)
                         root.beginDrag(row.rowItem, index, p.x, p.y, row.width - units.gu(2), delegateLoader.height)
-                        root.suppressPullRefreshAfterDrag = true
-                        suppressPullRefreshTimer.restart()
+                        root.suppressPullRefreshUntil = Date.now() + 350
                     } else if (root.selectionEnabled) {
                         root.toggleRowSelection(index, row.rowItem)
                         row.selectionHandledByLongPress = true
-                        root.suppressPullRefreshAfterDrag = true
-                        suppressPullRefreshTimer.restart()
+                        root.suppressPullRefreshUntil = Date.now() + 350
                     }
                 }
                 onPositionChanged: {
@@ -686,7 +680,7 @@ Item {
         height: refreshPullLabel.implicitHeight + units.gu(0.9)
         radius: height / 2
         color: root.refreshIndicatorColor
-        opacity: root.pullToRefreshEnabled && !root.dragActive && !root.suppressPullRefreshAfterDrag && (list.contentY < -units.gu(2) || root.refreshing) ? 0.92 : 0
+        opacity: root.pullToRefreshEnabled && !root.dragActive && !root.isPullRefreshSuppressed() && (list.contentY < -units.gu(2) || root.refreshing) ? 0.92 : 0
         z: 30
 
         Behavior on opacity { NumberAnimation { duration: 120 } }

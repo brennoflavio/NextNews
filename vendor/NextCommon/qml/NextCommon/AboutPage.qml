@@ -94,6 +94,11 @@ Page {
                 opacity: 0.75
             }
 
+            // "Contributors" and "Disclaimer" below are deliberately left
+            // untranslated (no msgstr added in po/*.po) even though they're
+            // wrapped in i18n.tr() like everything else - legal/attribution
+            // content, not general UI text. Don't add translations for them
+            // in future translation passes.
             Label {
                 Layout.fillWidth: true
                 visible: page.contributorsText.length > 0

@@ -1,12 +1,11 @@
 import QtQuick 2.7
-import Ubuntu.OnlineAccounts 0.1
+import Lomiri.OnlineAccounts 2.0
 import Qt.labs.settings 1.0
 
 Item {
     id: adapter
 
     property string logPrefix: "NextApp"
-    property bool pendingServiceHandle: false
     property int cachedAccountId: 0
     property string cachedServiceId: ""
     property string cachedServerUrl: ""
@@ -19,11 +18,9 @@ Item {
     property int pendingAuthAccountId: 0
     property string pendingAuthServiceId: ""
     property string pendingAuthServerUrl: ""
+    property var pendingAccount: null
     property var pendingCallback: null
-    property bool authenticationRetryPending: false
-    property int authenticationRetryCount: 0
-    readonly property int maxAuthenticationRetries: 1
-    property bool accountModelRefreshPending: false
+    property bool pendingModelReady: false
     property bool envTestAuthEnabled: typeof desktopTestAuthEnabled !== "undefined" && desktopTestAuthEnabled
     property string envTestServerUrl: typeof desktopTestServerUrl !== "undefined" ? desktopTestServerUrl : ""
     property string envTestUserName: typeof desktopTestUserName !== "undefined" ? desktopTestUserName : ""
@@ -42,82 +39,21 @@ Item {
         property string serverUrl: ""
     }
 
-    AccountServiceModel {
-        id: accountServices
-        includeDisabled: true
+    AccountModel {
+        id: accountModel
 
-        onCountChanged: {
-            if (adapter.pendingServiceHandle) {
+        onReadyChanged: {
+            if (ready && adapter.pendingModelReady) {
+                adapter.pendingModelReady = false
                 adapter.authenticate()
             }
         }
     }
 
-    AccountService {
-        id: accountService
-
-        onAuthenticated: {
-            var data = reply && reply.data ? reply.data : reply
-            var userName = adapter.firstValue(data, ["UserName", "Username", "userName", "username"])
-            var secret = adapter.firstValue(data, ["Secret", "Password", "password", "secret"])
-            var token = adapter.firstValue(data, ["AccessToken", "Token", "token"])
-
-            if (!userName || !secret) {
-                adapter.failed(i18n.tr("Authentication succeeded, but the required Online Accounts credentials were not available."))
-                return
-            }
-
-            if (!adapter.pendingAuthMatchesCurrent()) {
-                return
-            }
-
-            adapter.cachedAccountId = adapter.pendingAuthAccountId
-            adapter.cachedServiceId = adapter.pendingAuthServiceId
-            adapter.cachedServerUrl = adapter.pendingAuthServerUrl
-            adapter.cachedUserName = userName
-            adapter.cachedSecret = secret
-            adapter.authenticationRetryPending = false
-            adapter.authenticationRetryCount = 0
-
-            adapter.authenticated(userName, secret, adapter.cachedServerUrl, adapter.cachedAccountId, adapter.cachedServiceId)
-            if (adapter.pendingCallback) {
-                var callback = adapter.pendingCallback
-                adapter.pendingCallback = null
-                callback(userName, secret, adapter.cachedServerUrl, adapter.cachedAccountId, adapter.cachedServiceId)
-            }
-        }
-
-        onAuthenticationError: {
-            var message = error && error.message ? error.message : JSON.stringify(error)
-            if (!adapter.pendingAuthMatchesCurrent()) {
-                return
-            }
-            if (adapter.retryAuthenticationBeforeFail(message)) {
-                return
-            }
-            adapter.failed(i18n.tr("Authentication failed: %1").arg(message))
-        }
-    }
-
-    Timer {
-        id: authenticateAfterHandleTimer
-        interval: 80
-        repeat: false
-        onTriggered: accountService.authenticate({})
-    }
-
-    Timer {
-        id: authenticationRetryTimer
-        interval: 650
-        repeat: false
-        onTriggered: adapter.retryAuthenticationAfterStaleFailure()
-    }
-
-    Timer {
-        id: accountModelRefreshTimer
-        interval: 120
-        repeat: false
-        onTriggered: adapter.finishAccountModelRefreshBeforeRetry()
+    Connections {
+        target: adapter.pendingAccount
+        ignoreUnknownSignals: true
+        onAuthenticationReply: adapter.handleAuthenticationReply(authenticationData)
     }
 
     function authenticate() {
@@ -163,23 +99,23 @@ Item {
             return
         }
 
-        var handle = findSelectedAccountService()
-        if (!handle) {
-            if (accountServices.count === 0) {
-                pendingServiceHandle = true
-                failed(i18n.tr("Waiting for Online Accounts..."))
-            } else {
-                failed(i18n.tr("Selected Online Accounts service was not found. Open Account and verify the account again."))
-            }
+        if (!accountModel.ready) {
+            pendingModelReady = true
+            failed(i18n.tr("Waiting for Online Accounts..."))
             return
         }
 
-        pendingServiceHandle = false
-        accountService.objectHandle = handle
+        var account = findSelectedAccount()
+        if (!account) {
+            failed(i18n.tr("Selected Online Accounts service was not found. Open Account and verify the account again."))
+            return
+        }
+
+        pendingAccount = account
         pendingAuthAccountId = effectiveAccountId()
         pendingAuthServiceId = effectiveServiceId()
         pendingAuthServerUrl = serverUrl
-        authenticateAfterHandleTimer.restart()
+        account.authenticate({})
     }
 
     function withCredentials(callback) {
@@ -195,10 +131,8 @@ Item {
             || currentServerUrl !== normalizedServerUrl
 
         if (accountChanged) {
-            pendingServiceHandle = false
+            pendingModelReady = false
             pendingCallback = null
-            authenticationRetryPending = false
-            authenticationRetryCount = 0
             cachedAccountId = 0
             cachedServiceId = ""
             cachedServerUrl = ""
@@ -207,14 +141,63 @@ Item {
             pendingAuthAccountId = 0
             pendingAuthServiceId = ""
             pendingAuthServerUrl = ""
-            authenticateAfterHandleTimer.stop()
-            accountService.objectHandle = null
+            pendingAccount = null
         }
 
         currentAccountId = accountId
         currentProviderId = providerId || ""
         currentServiceId = serviceId || ""
         currentServerUrl = normalizedServerUrl
+    }
+
+    function handleAuthenticationReply(authenticationData) {
+        if (!pendingAuthMatchesCurrent()) {
+            return
+        }
+
+        if (authenticationData && authenticationData.errorCode !== undefined) {
+            var errorCode = authenticationData.errorCode
+            if (errorCode === Account.ErrorCodePermissionDenied) {
+                failed(i18n.tr("This app is no longer allowed to use this account. Open System Settings > Accounts, allow it again, then try again."))
+            } else if (errorCode === Account.ErrorCodeUserCanceled) {
+                failed(i18n.tr("Authorization was canceled."))
+            } else {
+                failed(i18n.tr("Authentication failed. Open Account and verify the account again."))
+            }
+            return
+        }
+
+        var userName = firstValue(authenticationData, ["UserName", "Username", "userName", "username"])
+        var secret = firstValue(authenticationData, ["Secret", "Password", "password", "secret"])
+
+        if (!userName || !secret) {
+            failed(i18n.tr("Authentication succeeded, but the required Online Accounts credentials were not available."))
+            return
+        }
+
+        cachedAccountId = pendingAuthAccountId
+        cachedServiceId = pendingAuthServiceId
+        cachedServerUrl = pendingAuthServerUrl
+        cachedUserName = userName
+        cachedSecret = secret
+
+        authenticated(userName, secret, cachedServerUrl, cachedAccountId, cachedServiceId)
+        if (pendingCallback) {
+            var callback = pendingCallback
+            pendingCallback = null
+            callback(userName, secret, cachedServerUrl, cachedAccountId, cachedServiceId)
+        }
+    }
+
+    function findSelectedAccount() {
+        var accountId = effectiveAccountId()
+        var serviceIdSetting = effectiveServiceId()
+        for (var i = 0; i < accountModel.count; ++i) {
+            if (accountModel.get(i, "accountId") === accountId && accountModel.get(i, "serviceId") === serviceIdSetting) {
+                return accountModel.get(i, "account")
+            }
+        }
+        return null
     }
 
     function hasCachedCredentials(serverUrl) {
@@ -229,59 +212,6 @@ Item {
         return pendingAuthAccountId === effectiveAccountId()
             && pendingAuthServiceId === effectiveServiceId()
             && pendingAuthServerUrl === normalizeServerUrl(effectiveServerUrl())
-    }
-
-    function findSelectedAccountService() {
-        var accountId = effectiveAccountId()
-        var providerIdSetting = effectiveProviderId()
-        var serviceIdSetting = effectiveServiceId()
-        for (var i = 0; i < accountServices.count; ++i) {
-            if (accountServices.get(i, "accountId") === accountId) {
-                var handle = accountServices.get(i, "accountServiceHandle")
-                accountService.objectHandle = handle
-                var provider = accountService.provider || {}
-                var service = accountService.service || {}
-                var providerId = provider.id || accountServices.get(i, "providerName")
-                var serviceId = service.id || accountServices.get(i, "serviceName")
-                if (providerId === providerIdSetting && serviceId === serviceIdSetting) {
-                    return handle
-                }
-            }
-        }
-        return null
-    }
-
-    function retryAuthenticationBeforeFail(message) {
-        if (authenticationRetryCount >= maxAuthenticationRetries) {
-            return false
-        }
-
-        authenticationRetryCount += 1
-        authenticationRetryPending = true
-        accountModelRefreshPending = true
-        cachedAccountId = 0
-        cachedServiceId = ""
-        cachedServerUrl = ""
-        cachedUserName = ""
-        cachedSecret = ""
-        accountService.objectHandle = null
-        accountServices.includeDisabled = false
-        accountModelRefreshTimer.restart()
-        return true
-    }
-
-    function finishAccountModelRefreshBeforeRetry() {
-        accountServices.includeDisabled = true
-        authenticationRetryTimer.restart()
-    }
-
-    function retryAuthenticationAfterStaleFailure() {
-        if (!authenticationRetryPending) {
-            return
-        }
-        authenticationRetryPending = false
-        accountModelRefreshPending = false
-        authenticate()
     }
 
     function effectiveAccountId() {

@@ -56,7 +56,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "Native but simple Ubuntu Touch client for Nextcloud News."
+                text: "Native Ubuntu Touch client for Nextcloud News."
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }

@@ -102,7 +102,7 @@ class NextCommonContractTests(unittest.TestCase):
         ]:
             self.assertNotIn(forbidden, qmldir)
 
-        self.assertEqual(read_text("qml/NextCommon/VERSION").strip(), "0.2.1")
+        self.assertEqual(read_text("qml/NextCommon/VERSION").strip(), "0.3.1")
 
     def test_components_are_app_agnostic(self):
         combined = "\n".join(
@@ -128,14 +128,13 @@ class NextCommonContractTests(unittest.TestCase):
         session = read_text("qml/NextCommon/AccountSessionAdapter.qml")
         combined = account + "\n" + session
 
-        self.assertIn("AccountServiceModel", account)
-        self.assertIn("AccountService", account)
+        self.assertIn("import Lomiri.OnlineAccounts 2.0", account)
+        self.assertIn("AccountModel", account)
         self.assertIn("function openSystemAccountsSettings()", account)
         self.assertIn('Qt.openUrlExternally("settings:///system/online-accounts")', account)
         self.assertIn("function openSystemAccountsHelp()", account)
         self.assertIn("visible: page.waitingForSystemApproval", account)
-        self.assertIn("selectedEnabled || selectedHasServiceHandle", account)
-        self.assertIn("if (!selectedEnabled && !selectedHasServiceHandle)", account)
+        self.assertIn("Account.ErrorCodePermissionDenied", account)
 
         self.assertIn("signal authenticated(string userName, string secret, string serverUrl, int accountId, string serviceId)", session)
         self.assertIn("function withCredentials(callback)", session)
@@ -149,6 +148,11 @@ class NextCommonContractTests(unittest.TestCase):
             "selectedService.updateServiceEnabled(true)",
             "repairSignOnAccessBeforePrompt",
             "signOnRepairAttemptCount",
+            # requestAccess() can guide the user through creating a brand new
+            # account, which is exactly the "app opens a login page" flow we
+            # must never trigger - only ever list/authenticate accounts the
+            # user already added and approved via System Settings themselves.
+            "requestAccess(",
         ]:
             self.assertNotIn(forbidden, combined)
 
@@ -203,7 +207,7 @@ class NextCommonContractTests(unittest.TestCase):
         versioning = read_text("docs/versioning.md")
         self.assertIn("may intentionally use different NextCommon versions", readme)
         self.assertIn("Different apps in the NextApps suite may intentionally use different", guide)
-        self.assertIn("Each app pins the exact NextCommon commit/version", versioning)
+        self.assertIn("Each app pins its submodule to a **tagged release**", versioning)
         self.assertIn("Do not edit vendored NextCommon files inside an app", versioning)
 
 

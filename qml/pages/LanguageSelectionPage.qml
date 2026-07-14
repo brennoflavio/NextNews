@@ -17,7 +17,11 @@ Page {
         { "code": "da", "label": "Dansk", "detail": i18n.tr("AI-assisted translation") },
         { "code": "nb", "label": "Norsk bokmal", "detail": i18n.tr("AI-assisted translation") },
         { "code": "es", "label": "Espanol", "detail": i18n.tr("AI-assisted translation") },
-        { "code": "fi", "label": "Suomi", "detail": i18n.tr("AI-assisted translation") }
+        { "code": "fi", "label": "Suomi", "detail": i18n.tr("AI-assisted translation") },
+        { "code": "it", "label": "Italiano", "detail": i18n.tr("AI-assisted translation") },
+        { "code": "pl", "label": "Polski", "detail": i18n.tr("AI-assisted translation") },
+        { "code": "ru", "label": "Русский", "detail": i18n.tr("AI-assisted translation") },
+        { "code": "uk", "label": "Українська", "detail": i18n.tr("AI-assisted translation") }
     ]
 
     header: PageHeader {

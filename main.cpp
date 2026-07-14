@@ -109,6 +109,10 @@ QString localeForLanguageCode(const QString &languageCode)
         {QStringLiteral("nb"), QStringLiteral("nb_NO.UTF-8")},
         {QStringLiteral("es"), QStringLiteral("es_ES.UTF-8")},
         {QStringLiteral("fi"), QStringLiteral("fi_FI.UTF-8")},
+        {QStringLiteral("it"), QStringLiteral("it_IT.UTF-8")},
+        {QStringLiteral("pl"), QStringLiteral("pl_PL.UTF-8")},
+        {QStringLiteral("ru"), QStringLiteral("ru_RU.UTF-8")},
+        {QStringLiteral("uk"), QStringLiteral("uk_UA.UTF-8")},
     };
 
     return localeMap.value(languageCode, QString());

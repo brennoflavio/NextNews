@@ -101,7 +101,6 @@ Item {
 
         onAuthenticated: function(userName, secret, serverUrl, accountId, serviceId) {
             if (!controller.isCurrentAccountResponse(accountId, serviceId, serverUrl)) {
-                console.log("NextNews Controller ignored stale auth response accountId=" + accountId + " serviceId=" + serviceId)
                 return
             }
             controller.runtimeUserName = userName
@@ -131,7 +130,6 @@ Item {
 
         onFoldersLoaded: function(folders, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale folders response generation=" + generation)
                 return
             }
             cache.saveFolders(folders)
@@ -144,7 +142,6 @@ Item {
 
         onFolderCreated: function(folders, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale folder-created response generation=" + generation)
                 return
             }
             controller.folderCreateRunning = false
@@ -163,7 +160,6 @@ Item {
 
         onFolderRenamed: function(folderId, name, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale folder-renamed response generation=" + generation)
                 return
             }
             controller.finishManagementOperation()
@@ -177,7 +173,6 @@ Item {
 
         onFeedsLoaded: function(feeds, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale feeds response generation=" + generation)
                 return
             }
             cache.saveFeeds(feeds)
@@ -189,7 +184,6 @@ Item {
 
         onFeedCreated: function(generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale feed-created response generation=" + generation)
                 return
             }
             controller.feedCreateRunning = false
@@ -201,7 +195,6 @@ Item {
 
         onFeedRenamed: function(feedId, title, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale feed-renamed response generation=" + generation)
                 return
             }
             controller.finishManagementOperation()
@@ -215,7 +208,6 @@ Item {
 
         onFeedMoved: function(generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale feed-moved response generation=" + generation)
                 return
             }
             controller.finishManagementOperation()
@@ -227,7 +219,6 @@ Item {
 
         onFeedDeleted: function(feedId, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale feed-deleted response generation=" + generation)
                 return
             }
             var deletedFeedId = feedId > 0 ? feedId : feedDeleteInProgressId
@@ -248,7 +239,6 @@ Item {
 
         onFolderDeleted: function(folderId, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale folder-deleted response generation=" + generation)
                 return
             }
             controller.finishManagementOperation()
@@ -265,7 +255,6 @@ Item {
 
         onItemsLoaded: function(items, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale items response generation=" + generation)
                 return
             }
             cache.saveItems(items)
@@ -278,7 +267,6 @@ Item {
 
         onItemStateUploaded: function(itemId, unread, starred, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale item-state response generation=" + generation)
                 return
             }
             cache.clearPending(itemId)
@@ -288,7 +276,6 @@ Item {
 
         onItemStatesUploaded: function(itemIds, unread, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale item-states response generation=" + generation)
                 return
             }
             for (var i = 0; i < itemIds.length; ++i) {
@@ -300,7 +287,6 @@ Item {
 
         onFailed: function(message, generation) {
             if (!controller.isCurrentApiGeneration(generation)) {
-                console.log("NextNews Controller ignored stale API failure generation=" + generation)
                 return
             }
             var queuedManagement = controller.queueCurrentManagementOperation()
@@ -405,7 +391,6 @@ Item {
         syncStateColor = "#2c7fb8"
         accountSession.withCredentials(function(userName, secret, serverUrl, accountId, serviceId) {
             if (!controller.isCurrentAccountResponse(accountId, serviceId, serverUrl)) {
-                console.log("NextNews Controller ignored stale load auth callback accountId=" + accountId + " serviceId=" + serviceId)
                 return
             }
             controller.runtimeUserName = userName

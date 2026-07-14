@@ -54,7 +54,6 @@ Item {
                 rows.push(rowToFolder(result.rows.item(i)))
             }
         })
-        console.log("NextNews NewsCache loadFolders count=" + rows.length)
         return rows
     }
 
@@ -67,7 +66,6 @@ Item {
                 rows.push(rowToFeed(result.rows.item(i)))
             }
         })
-        console.log("NextNews NewsCache loadFeeds count=" + rows.length)
         return rows
     }
 
@@ -83,7 +81,6 @@ Item {
                 rows.push(rowToItem(result.rows.item(i)))
             }
         })
-        console.log("NextNews NewsCache loadItems count=" + rows.length)
         return rows
     }
 
@@ -99,7 +96,6 @@ Item {
                 rows.push(rowToItem(result.rows.item(i)))
             }
         })
-        console.log("NextNews NewsCache loadPendingItems count=" + rows.length)
         return rows
     }
 
@@ -108,7 +104,6 @@ Item {
         database.transaction(function(tx) {
             tx.executeSql("UPDATE items SET pending_state = '', updated_at = ? WHERE pending_state != ''", [Date.now()])
         })
-        console.log("NextNews NewsCache clearAllPendingItems")
     }
 
     function loadPendingManagementOperations() {
@@ -120,7 +115,6 @@ Item {
                 rows.push(rowToPendingManagement(result.rows.item(i)))
             }
         })
-        console.log("NextNews NewsCache loadPendingManagementOperations count=" + rows.length)
         return rows
     }
 
@@ -134,7 +128,6 @@ Item {
                 [kind, Number(targetId || 0), json, Date.now()]
             )
         })
-        console.log("NextNews NewsCache queueManagementOperation kind=" + kind + " targetId=" + targetId)
     }
 
     function removePendingManagementOperation(operationId) {
@@ -142,7 +135,6 @@ Item {
         database.transaction(function(tx) {
             tx.executeSql("DELETE FROM pending_management WHERE id = ?", [operationId])
         })
-        console.log("NextNews NewsCache removePendingManagementOperation operationId=" + operationId)
     }
 
     function clearPendingManagementOperations() {
@@ -150,7 +142,6 @@ Item {
         database.transaction(function(tx) {
             tx.executeSql("DELETE FROM pending_management")
         })
-        console.log("NextNews NewsCache clearPendingManagementOperations")
     }
 
     function saveFolders(folders) {
@@ -161,7 +152,6 @@ Item {
                 tx.executeSql("INSERT OR REPLACE INTO folders (id, name) VALUES (?, ?)", [folders[i].folderId, folders[i].name])
             }
         })
-        console.log("NextNews NewsCache saveFolders count=" + folders.length)
     }
 
     function saveFeeds(feeds) {
@@ -191,7 +181,6 @@ Item {
                 tx.executeSql("DELETE FROM items WHERE (pending_state IS NULL OR pending_state = '') AND feed_id NOT IN (" + feedIds.join(",") + ")")
             }
         })
-        console.log("NextNews NewsCache saveFeeds count=" + feeds.length)
     }
 
     function removeFeed(feedId) {
@@ -200,7 +189,6 @@ Item {
             tx.executeSql("DELETE FROM feeds WHERE id = ?", [feedId])
             tx.executeSql("DELETE FROM items WHERE feed_id = ?", [feedId])
         })
-        console.log("NextNews NewsCache removeFeed feedId=" + feedId)
     }
 
     function removeFolder(folderId) {
@@ -214,7 +202,6 @@ Item {
             tx.executeSql("DELETE FROM feeds WHERE folder_id = ?", [folderId])
             tx.executeSql("DELETE FROM folders WHERE id = ?", [folderId])
         })
-        console.log("NextNews NewsCache removeFolder folderId=" + folderId)
     }
 
     function renameFeed(feedId, title) {
@@ -222,7 +209,6 @@ Item {
         database.transaction(function(tx) {
             tx.executeSql("UPDATE feeds SET title = ? WHERE id = ?", [title, feedId])
         })
-        console.log("NextNews NewsCache renameFeed feedId=" + feedId)
     }
 
     function renameFolder(folderId, name) {
@@ -230,7 +216,6 @@ Item {
         database.transaction(function(tx) {
             tx.executeSql("UPDATE folders SET name = ? WHERE id = ?", [name, folderId])
         })
-        console.log("NextNews NewsCache renameFolder folderId=" + folderId)
     }
 
     function setFeedOpenExternal(feedId, openExternal) {
@@ -238,7 +223,6 @@ Item {
         database.transaction(function(tx) {
             tx.executeSql("UPDATE feeds SET open_external = ? WHERE id = ?", [openExternal ? 1 : 0, feedId])
         })
-        console.log("NextNews NewsCache setFeedOpenExternal feedId=" + feedId + " openExternal=" + openExternal)
     }
 
     function saveItems(items) {
@@ -263,7 +247,6 @@ Item {
                 )
             }
         })
-        console.log("NextNews NewsCache saveItems count=" + items.length)
     }
 
     function updateLocalReadState(itemId, unread, pending) {
@@ -274,7 +257,6 @@ Item {
                 [unread ? 1 : 0, pending ? pendingState : pendingNone, Date.now(), itemId]
             )
         })
-        console.log("NextNews NewsCache updateLocalReadState itemId=" + itemId + " unread=" + unread + " pending=" + pending)
     }
 
     function updateLocalReadStates(itemIds, unread, pending) {
@@ -288,7 +270,6 @@ Item {
                 )
             }
         })
-        console.log("NextNews NewsCache updateLocalReadStates count=" + itemIds.length + " unread=" + unread + " pending=" + pending)
     }
 
     function updateLocalStarState(itemId, starred, pending) {
@@ -299,7 +280,6 @@ Item {
                 [starred ? 1 : 0, pending ? pendingStar : pendingNone, Date.now(), itemId]
             )
         })
-        console.log("NextNews NewsCache updateLocalStarState itemId=" + itemId + " starred=" + starred + " pending=" + pending)
     }
 
     function clearPending(itemId) {

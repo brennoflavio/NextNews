@@ -48,7 +48,6 @@ Page {
         item.text = shareText
         transfer.items = [ item ]
         transfer.state = ContentTransfer.Charged
-        console.log("NextNews ContentHub share requested textLength=" + shareText.length)
         page.shareFinished()
     }
 }

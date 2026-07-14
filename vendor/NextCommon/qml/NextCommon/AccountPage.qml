@@ -2,7 +2,7 @@ import QtQuick 2.7
 import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import Lomiri.Components.Popups 1.3
-import Ubuntu.OnlineAccounts 0.1
+import Lomiri.OnlineAccounts 2.0
 import Qt.labs.settings 1.0
 import "qrc:/NextCommon/UrlHelpers.js" as UrlHelpers
 import "qrc:/NextCommon/TextHelpers.js" as TextHelpers
@@ -20,25 +20,13 @@ Page {
 
     property int selectedAccountId: 0
     property string selectedDisplayName: ""
-    property string selectedProviderId: ""
-    property string selectedProviderName: ""
     property string selectedServiceId: ""
-    property string selectedServiceName: ""
-    property string selectedServiceTypeId: ""
-    property bool selectedEnabled: false
-    property bool selectedHasServiceHandle: false
+    property var selectedAccount: null
     property string serverUrl: accountSettings.serverUrl
     property string pendingServerUrlAction: ""
     property bool authorizationRunning: false
     property bool waitingForSystemApproval: false
-    property bool authenticationRetryPending: false
-    property int authenticationRetryCount: 0
-    readonly property int maxAuthenticationRetries: 1
-    property bool accountModelRefreshPending: false
-    property int serviceResolutionRetryCount: 0
-    readonly property int maxServiceResolutionRetries: 4
-    property int visibleCloudAccounts: 0
-    property int accountServiceRows: 0
+    property bool pageHasAppeared: false
     property string authorizationStatus: i18n.tr("Select an account and authorize it for %1.").arg(page.appName)
     readonly property real oskOverlap: Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle.height > 0
         ? Math.max(0, page.height - Qt.inputMethod.keyboardRectangle.y)
@@ -60,74 +48,17 @@ Page {
         property string avatarUrl: ""
     }
 
-    AccountServiceModel {
-        id: accountServices
-        includeDisabled: true
+    AccountModel {
+        id: accountModel
+        applicationId: page.appApplicationId
 
-        onCountChanged: {
-            page.updateVisibleCloudAccounts()
-            Qt.callLater(page.restoreSelectedAccountFromSettings)
-        }
+        onReadyChanged: if (ready) page.restoreSelectedAccountFromSettings()
     }
 
-    AccountService {
-        id: selectedService
-
-        onAuthenticated: {
-            page.authorizationRunning = false
-            page.waitingForSystemApproval = false
-            page.authenticationRetryPending = false
-            page.authenticationRetryCount = 0
-            page.serviceResolutionRetryCount = 0
-            var data = reply && reply.data ? reply.data : reply
-            var userName = page.firstValue(data, ["UserName", "Username", "userName", "username"])
-            var secret = page.firstValue(data, ["Secret", "Password", "password", "secret"])
-            var token = page.firstValue(data, ["AccessToken", "Token", "token"])
-
-            if (page.displayServerUrlIsMissing()) {
-                page.authorizationStatus = i18n.tr("Authorization succeeded, but the Ubuntu Touch account did not expose a server address for %1.").arg(page.appName)
-            } else {
-                page.authorizationStatus = i18n.tr("Authorization succeeded for %1. Credentials are available to the app, but were not displayed or stored.")
-                    .arg(page.selectedProviderId)
-            }
-            accountSettings.accountId = page.selectedAccountId
-            accountSettings.displayName = page.selectedDisplayName
-            accountSettings.providerId = page.selectedProviderId
-            accountSettings.serviceId = page.selectedServiceId
-            accountSettings.serverUrl = page.normalizeServerUrl(page.serverUrl)
-            accountSettings.avatarUrl = page.avatarUrl(accountSettings.serverUrl, userName)
-            page.accountAuthorized(
-                accountSettings.accountId,
-                accountSettings.displayName,
-                accountSettings.providerId,
-                accountSettings.serviceId,
-                accountSettings.serverUrl,
-                accountSettings.avatarUrl
-            )
-        }
-
-        onAuthenticationError: {
-            var message = error && error.message ? error.message : JSON.stringify(error)
-            if (page.retryAuthenticationBeforePrompt(message)) {
-                return
-            }
-
-            page.authorizationRunning = false
-            page.authenticationRetryPending = false
-            if (message.indexOf("AppArmor policy prevents") >= 0 || message.indexOf("AccessDenied") >= 0) {
-                page.waitingForSystemApproval = true
-                page.authorizationStatus = i18n.tr("Ubuntu Touch Online Accounts did not allow %1 to use this account yet. Check that %1 is enabled for this account in System Settings > Accounts, then return here.").arg(page.appName)
-            } else {
-                page.waitingForSystemApproval = true
-                page.authorizationStatus = i18n.tr("Authorization failed: %1. If the system did not show an Online Accounts prompt, open System Settings > Accounts and allow %2 for this account, then try again.")
-                    .arg(message).arg(page.appName)
-            }
-            page.openSystemAccountsHelp()
-        }
-    }
-
-    AccountService {
-        id: visibleCountService
+    Connections {
+        target: page.selectedAccount
+        ignoreUnknownSignals: true
+        onAuthenticationReply: page.handleAuthenticationReply(authenticationData)
     }
 
     Timer {
@@ -139,30 +70,32 @@ Page {
             page.saveServerUrl()
             var action = page.pendingServerUrlAction
             page.pendingServerUrlAction = ""
-            if (action === "authorize") {
-                page.authorizeSelectedAccountAfterCommit()
-            } else if (action === "authenticate") {
+            if (action === "authenticate") {
                 page.authenticateSelectedAccountAfterCommit()
             }
         }
     }
 
-    Component.onCompleted: Qt.callLater(function() {
-        page.updateVisibleCloudAccounts()
-        page.restoreSelectedAccountFromSettings()
-    })
-
     onVisibleChanged: {
-        if (visible && page.waitingForSystemApproval) {
-            retrySystemApprovalTimer.restart()
+        if (visible) {
+            if (page.pageHasAppeared) {
+                page.refreshAccountModel()
+            }
+            page.pageHasAppeared = true
+            if (page.waitingForSystemApproval) {
+                retrySystemApprovalTimer.restart()
+            }
         }
     }
 
     Connections {
         target: Qt.application
         onActiveChanged: {
-            if (Qt.application.active && page.waitingForSystemApproval) {
-                retrySystemApprovalTimer.restart()
+            if (Qt.application.active && page.visible && page.pageHasAppeared) {
+                page.refreshAccountModel()
+                if (page.waitingForSystemApproval) {
+                    retrySystemApprovalTimer.restart()
+                }
             }
         }
     }
@@ -172,27 +105,6 @@ Page {
         interval: 900
         repeat: false
         onTriggered: page.retryAfterSystemApproval()
-    }
-
-    Timer {
-        id: serviceResolutionRetryTimer
-        interval: 450
-        repeat: false
-        onTriggered: page.authenticateSelectedAccountAfterCommit()
-    }
-
-    Timer {
-        id: authenticationRetryTimer
-        interval: 650
-        repeat: false
-        onTriggered: page.retryAuthenticationAfterStaleFailure()
-    }
-
-    Timer {
-        id: accountModelRefreshTimer
-        interval: 120
-        repeat: false
-        onTriggered: page.finishAccountModelRefreshBeforeRetry()
     }
 
     Component {
@@ -303,7 +215,7 @@ Page {
                     }
 
                     Label {
-                        text: page.accountReady() ? "\u2713" : "!"
+                        text: page.accountReady() ? "✓" : "!"
                         color: page.accountReady() ? "#2f7d32" : "#c65d00"
                         font.pixelSize: units.gu(2.4)
                     }
@@ -342,19 +254,29 @@ Page {
                 elide: Text.ElideRight
             }
 
-            Label {
+            Item {
                 Layout.fillWidth: true
-                visible: page.visibleCloudAccounts === 0 && page.accountServiceRows > 0
-                text: i18n.tr("Online Accounts returned %1 account service row(s), but none matched the expected Nextcloud service filter. Showing available rows for troubleshooting.").arg(page.accountServiceRows)
-                wrapMode: Text.WordWrap
-                maximumLineCount: 3
-                opacity: 0.72
+                Layout.preferredHeight: units.gu(3)
+
+                Label {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: i18n.tr("Add another account in System Settings")
+                    color: theme.palette.normal.backgroundText
+                    opacity: 0.82
+                    font.underline: true
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: page.openSystemAccountsSettings()
+                }
             }
 
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: noAccountsColumn.implicitHeight + units.gu(2)
-                visible: page.visibleCloudAccounts === 0
+                visible: accountModel.ready && page.matchingAccountCount() === 0
                 radius: units.gu(0.5)
                 color: "transparent"
                 border.width: 1
@@ -379,7 +301,7 @@ Page {
 
                     Label {
                         Layout.fillWidth: true
-                        text: i18n.tr("Add a Nextcloud or ownCloud account in Ubuntu Touch System Settings > Accounts. Then return here and select it.")
+                        text: i18n.tr("Add a Nextcloud or ownCloud account in Ubuntu Touch System Settings > Accounts, and allow %1 to use it. Then return here and select it.").arg(page.appName)
                         wrapMode: Text.WordWrap
                         maximumLineCount: 4
                         opacity: 0.82
@@ -391,59 +313,38 @@ Page {
 
                         Label {
                             anchors.centerIn: parent
-                            text: i18n.tr("How to add an account")
+                            text: i18n.tr("Open System Settings")
                             color: theme.palette.normal.backgroundText
                             font.bold: true
                         }
 
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: PopupUtils.open(openSystemAccountsDialog)
+                            onClicked: page.openSystemAccountsSettings()
                         }
                     }
                 }
             }
 
             ListView {
-                id: servicesList
+                id: accountsList
                 Layout.fillWidth: true
                 Layout.preferredHeight: Math.min(Math.max(contentHeight, units.gu(7)), units.gu(24))
                 clip: true
-                model: accountServices
+                model: accountModel
 
                 delegate: ListItem {
                     id: row
 
-                    function role(roleName) {
-                        return accountServices.get(index, roleName)
-                    }
-
-                    AccountService {
-                        id: rowService
-                        objectHandle: row.role("accountServiceHandle")
-                    }
-
-                    property var rowProvider: rowService.provider || {}
-                    property var rowServiceInfo: rowService.service || {}
-                    property string rowServiceId: rowServiceInfo.id || row.role("serviceName")
-                    property string rowProviderId: page.providerIdForService(rowProvider.id || row.role("providerName"), rowServiceId)
-                    property string rowServiceTypeId: rowServiceInfo.serviceTypeId || rowServiceInfo.type || ""
-                    property bool isCloudAccount: rowProviderId === "nextcloud" || rowProviderId === "owncloud"
-                    property bool isAppService: rowServiceId === page.nextcloudServiceId || rowServiceId === page.owncloudServiceId
-                    property bool isGenericCloudService: rowServiceId.length === 0
-                        || rowServiceId === rowProviderId
-                        || rowServiceId === row.role("serviceName")
-                            && rowServiceTypeId.length === 0
-                    property bool isSelected: (page.selectedAccountId === row.role("accountId")
-                            && page.selectedServiceId === rowServiceId)
+                    readonly property bool isMatchingService: model.serviceId === page.nextcloudServiceId || model.serviceId === page.owncloudServiceId
+                    readonly property bool isSelected: (page.selectedAccountId === model.accountId && page.selectedServiceId === model.serviceId)
                         || (page.selectedAccountId <= 0
-                            && accountSettings.accountId === row.role("accountId")
-                            && accountSettings.serviceId === rowServiceId)
+                            && accountSettings.accountId === model.accountId
+                            && accountSettings.serviceId === model.serviceId)
 
-                    height: visible ? units.gu(7) : 0
-                    visible: (isCloudAccount && (isAppService || isGenericCloudService))
-                        || (page.visibleCloudAccounts === 0 && page.accountServiceRows > 0 && row.role("accountId") > 0)
-                    color: row.isSelected ? Qt.rgba(0.17, 0.5, 0.72, 0.16) : "transparent"
+                    height: visible ? Math.max(units.gu(7), content.implicitHeight + units.gu(1.6)) : 0
+                    visible: isMatchingService
+                    color: isSelected ? Qt.rgba(0.17, 0.5, 0.72, 0.16) : "transparent"
 
                     enabled: !page.authorizationRunning
 
@@ -452,25 +353,14 @@ Page {
                             return
                         }
 
-                        page.selectAccount(
-                            row.role("accountServiceHandle"),
-                            row.role("accountId"),
-                            row.role("displayName"),
-                            row.role("providerName"),
-                            rowProviderId,
-                            row.role("serviceName"),
-                            rowServiceId,
-                            rowServiceTypeId,
-                            row.role("enabled")
-                        )
+                        page.selectAccount(model.account, model.accountId, model.displayName, model.serviceId, model.settings)
                     }
 
                     RowLayout {
                         id: content
                         x: units.gu(1)
-                        y: 0
+                        anchors.verticalCenter: parent.verticalCenter
                         width: Math.max(0, row.width - units.gu(2))
-                        height: row.height
                         spacing: units.gu(1)
 
                         Rectangle {
@@ -483,7 +373,7 @@ Page {
 
                             Label {
                                 anchors.centerIn: parent
-                                text: String(row.role("displayName") || "?").charAt(0).toUpperCase()
+                                text: String(model.displayName || "?").charAt(0).toUpperCase()
                                 color: row.isSelected ? "white" : theme.palette.normal.backgroundText
                                 font.bold: true
                             }
@@ -495,31 +385,19 @@ Page {
 
                             Label {
                                 Layout.fillWidth: true
-                                text: row.role("displayName")
+                                text: model.displayName
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                             }
 
                             Label {
                                 Layout.fillWidth: true
-                                text: rowProviderId
-                                    + " - accountId " + row.role("accountId")
-                                    + (rowServiceId.length > 0 ? " - " + rowServiceId : "")
+                                text: page.accountRowSubtitle(model.serviceId, model.settings)
                                 textSize: Label.Small
+                                wrapMode: Text.Wrap
                                 elide: Text.ElideRight
-                                maximumLineCount: 1
+                                maximumLineCount: 2
                                 opacity: 0.72
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: row.isAppService
-                                    ? (row.role("enabled") ? i18n.tr("Allowed for %1").arg(page.appName) : i18n.tr("Allow %1 in Ubuntu Touch account settings first").arg(page.appName))
-                                    : i18n.tr("Nextcloud account discovered")
-                                textSize: Label.Small
-                                elide: Text.ElideRight
-                                maximumLineCount: 1
-                                opacity: row.isAppService && row.role("enabled") ? 0.72 : 0.9
                             }
                         }
                     }
@@ -580,166 +458,80 @@ Page {
         }
     }
 
-    function selectAccount(handle, accountId, displayName, providerName, providerId, serviceName, serviceId, serviceTypeId, enabled) {
-        var appService = findPreferredAppService(accountId, providerId)
-        if (appService.handle) {
-            handle = appService.handle
-            serviceName = appService.serviceName
-            serviceId = appService.serviceId
-            serviceTypeId = appService.serviceTypeId
-            enabled = appService.enabled
-        } else if (!isExpectedAppService(serviceId, providerId)) {
-            handle = null
-            serviceName = expectedServiceIdForProvider(providerId)
-            serviceId = serviceName
-            serviceTypeId = ""
-            enabled = false
+    function matchingAccountCount() {
+        var count = 0
+        for (var i = 0; i < accountModel.count; ++i) {
+            var serviceId = accountModel.get(i, "serviceId")
+            if (serviceId === page.nextcloudServiceId || serviceId === page.owncloudServiceId) {
+                count += 1
+            }
         }
-
-        selectedService.objectHandle = handle
-        serviceResolutionRetryCount = 0
-        selectedAccountId = accountId
-        selectedDisplayName = displayName
-        selectedProviderName = providerName
-        selectedProviderId = providerId
-        selectedServiceName = serviceName
-        selectedServiceId = serviceId
-        selectedServiceTypeId = serviceTypeId
-        selectedEnabled = enabled
-        selectedHasServiceHandle = handle ? true : false
-
-        var resolvedServerUrl = findServerUrlForAccount(accountId, displayName)
-        serverUrl = normalizeServerUrl(resolvedServerUrl)
-        serverUrlField.text = serverUrl
-
-        authorizationStatus = i18n.tr("Selected %1. Verifying authorization...")
-            .arg(selectedDisplayName)
-        page.commitServerUrlInput("authenticate")
+        return count
     }
 
-    function findPreferredAppService(accountId, providerId) {
-        var expectedServiceId = expectedServiceIdForProvider(providerId)
-        for (var i = 0; i < accountServices.count; ++i) {
-            if (accountServices.get(i, "accountId") !== accountId) {
-                continue
-            }
-
-            var handle = accountServices.get(i, "accountServiceHandle")
-            if (!handle) {
-                continue
-            }
-
-            visibleCountService.objectHandle = handle
-            var provider = visibleCountService.provider || {}
-            var service = visibleCountService.service || {}
-            var rowServiceId = service.id || accountServices.get(i, "serviceName")
-            var rowProviderId = providerIdForService(provider.id || accountServices.get(i, "providerName"), rowServiceId)
-            if (rowProviderId === providerId && rowServiceId === expectedServiceId) {
-                return {
-                    "handle": handle,
-                    "serviceName": accountServices.get(i, "serviceName"),
-                    "serviceId": rowServiceId,
-                    "serviceTypeId": service.serviceTypeId || service.type || "",
-                    "enabled": accountServices.get(i, "enabled")
-                }
-            }
-        }
-
-        return {}
-    }
-
-    function expectedServiceIdForProvider(providerId) {
-        return providerId === "owncloud" ? owncloudServiceId : nextcloudServiceId
-    }
-
-    function isExpectedAppService(serviceId, providerId) {
-        return String(serviceId || "") === expectedServiceIdForProvider(providerId)
-    }
-
-    function restoreSelectedAccountFromSettings() {
-        if (selectedAccountId > 0 || accountSettings.accountId <= 0 || accountSettings.providerId.length === 0) {
-            return
-        }
-
-        var appService = findPreferredAppService(accountSettings.accountId, accountSettings.providerId)
-        if (!appService.handle) {
-            return
-        }
-
-        selectedService.objectHandle = appService.handle
-        selectedAccountId = accountSettings.accountId
-        selectedDisplayName = accountSettings.displayName
-        selectedProviderId = accountSettings.providerId
-        selectedProviderName = accountSettings.providerId
-        selectedServiceName = appService.serviceName
-        selectedServiceId = appService.serviceId
-        selectedServiceTypeId = appService.serviceTypeId
-        selectedEnabled = appService.enabled
-        selectedHasServiceHandle = appService.handle ? true : false
-        serverUrl = normalizeServerUrl(accountSettings.serverUrl)
-        serverUrlField.text = serverUrl
-        authorizationStatus = i18n.tr("Saved account selected. Verify again if needed.")
-    }
-
-    function findServerUrlForAccount(accountId, displayName) {
-        var selectedUrl = serverUrlFromCurrentService()
-        if (selectedUrl.length > 0) {
-            return selectedUrl
-        }
-
-        for (var i = 0; i < accountServices.count; ++i) {
-            if (accountServices.get(i, "accountId") !== accountId) {
-                continue
-            }
-
-            var handle = accountServices.get(i, "accountServiceHandle")
-            if (!handle) {
-                continue
-            }
-
-            visibleCountService.objectHandle = handle
-            var url = serverUrlFromService(visibleCountService)
-            if (url.length > 0) {
-                return url
-            }
-        }
-
-        var inferredUrl = inferServerUrlFromDisplayName(displayName)
-        if (inferredUrl.length > 0) {
-            return inferredUrl
-        }
-
-        if (accountSettings.accountId === accountId) {
-            return normalizeServerUrl(accountSettings.serverUrl)
-        }
-
+    function providerIdForService(serviceId) {
+        if (serviceId === page.nextcloudServiceId) return "nextcloud"
+        if (serviceId === page.owncloudServiceId) return "owncloud"
         return ""
     }
 
-    function serverUrlFromCurrentService() {
-        return serverUrlFromService(selectedService)
+    function accountRowSubtitle(serviceId, settings) {
+        var provider = page.providerIdForService(serviceId)
+        var server = page.serverUrlFromSettings(settings)
+        if (server.length > 0) {
+            return provider.length > 0 ? provider + " - " + server : server
+        }
+        return provider
     }
 
-    function serverUrlFromService(serviceObject) {
-        var settings = serviceObject.settings || {}
-        var account = serviceObject.account || {}
-        var provider = serviceObject.provider || {}
+    function selectAccount(accountObject, accountId, displayName, serviceId, settings) {
+        selectedAccount = accountObject
+        selectedAccountId = accountId
+        selectedDisplayName = displayName
+        selectedServiceId = serviceId
+
+        var resolvedUrl = serverUrlFromSettings(settings)
+        if (resolvedUrl.length === 0) {
+            resolvedUrl = inferServerUrlFromDisplayName(displayName)
+        }
+        if (resolvedUrl.length === 0 && accountSettings.accountId === accountId) {
+            resolvedUrl = normalizeServerUrl(accountSettings.serverUrl)
+        }
+        serverUrl = resolvedUrl
+        serverUrlField.text = serverUrl
+
+        authorizationStatus = i18n.tr("Selected %1. Verifying authorization...").arg(displayName)
+        page.commitServerUrlInput("authenticate")
+    }
+
+    function restoreSelectedAccountFromSettings() {
+        if (selectedAccountId > 0 || accountSettings.accountId <= 0 || accountSettings.serviceId.length === 0) {
+            return
+        }
+
+        for (var i = 0; i < accountModel.count; ++i) {
+            if (accountModel.get(i, "accountId") === accountSettings.accountId
+                    && accountModel.get(i, "serviceId") === accountSettings.serviceId) {
+                selectedAccount = accountModel.get(i, "account")
+                selectedAccountId = accountSettings.accountId
+                selectedDisplayName = accountSettings.displayName
+                selectedServiceId = accountSettings.serviceId
+                serverUrl = normalizeServerUrl(accountSettings.serverUrl)
+                serverUrlField.text = serverUrl
+                authorizationStatus = i18n.tr("Saved account selected. Verify again if needed.")
+                return
+            }
+        }
+    }
+
+    function serverUrlFromSettings(settings) {
         var values = [
-            settings.host,
-            settings.Host,
-            settings.server,
-            settings.serverUrl,
-            settings.url,
-            settings.Url,
-            account.host,
-            account.Host,
-            account.server,
-            account.serverUrl,
-            account.url,
-            provider.host,
-            provider.server,
-            provider.serverUrl,
-            provider.url
+            settings ? settings.host : "",
+            settings ? settings.Host : "",
+            settings ? settings.server : "",
+            settings ? settings.serverUrl : "",
+            settings ? settings.url : "",
+            settings ? settings.Url : ""
         ]
 
         for (var i = 0; i < values.length; ++i) {
@@ -764,164 +556,80 @@ Page {
         return normalizeServerUrl(host)
     }
 
-    function updateVisibleCloudAccounts() {
-        var count = 0
-        var rowCount = 0
-        for (var i = 0; i < accountServices.count; ++i) {
-            if (Number(accountServices.get(i, "accountId") || 0) > 0) {
-                rowCount += 1
-            }
-            var handle = accountServices.get(i, "accountServiceHandle")
-            if (!handle) {
-                continue
-            }
-
-            visibleCountService.objectHandle = handle
-            var provider = visibleCountService.provider || {}
-            var service = visibleCountService.service || {}
-            var serviceId = service.id || accountServices.get(i, "serviceName")
-            var providerId = providerIdForService(provider.id || accountServices.get(i, "providerName"), serviceId)
-            var enabled = accountServices.get(i, "enabled")
-            var cloudAppService = serviceId === nextcloudServiceId || serviceId === owncloudServiceId
-            var cloud = providerId === "nextcloud" || providerId === "owncloud" || cloudAppService
-            var genericCloudService = serviceId.length === 0
-                || serviceId === providerId
-                || serviceId === accountServices.get(i, "serviceName") && (service.serviceTypeId || service.type || "").length === 0
-            if (cloud && (cloudAppService || genericCloudService)) {
-                count += 1
-            }
-        }
-        accountServiceRows = rowCount
-        visibleCloudAccounts = count
-    }
-
-    function providerIdForService(providerId, serviceId) {
-        var provider = String(providerId || "")
-        if (provider.length > 0) {
-            return provider
-        }
-        var service = String(serviceId || "")
-        if (service === nextcloudServiceId || service.indexOf("_nextcloud") >= 0) {
-            return "nextcloud"
-        }
-        if (service === owncloudServiceId || service.indexOf("_owncloud") >= 0) {
-            return "owncloud"
-        }
-        return provider
-    }
-
-    function authorizeSelectedAccount() {
-        page.commitServerUrlInput("authenticate")
-    }
-
-    function authorizeSelectedAccountAfterCommit() {
-        if (selectedAccountId <= 0) {
-            authorizationStatus = i18n.tr("Select an account first.")
-            return
-        }
-
-        authenticateSelectedAccountAfterCommit()
-    }
-
     function authenticateSelectedAccount() {
         page.commitServerUrlInput("authenticate")
     }
 
     function authenticateSelectedAccountAfterCommit() {
-        if (selectedAccountId <= 0) {
+        if (selectedAccountId <= 0 || !selectedAccount) {
             authorizationStatus = i18n.tr("Select an account first.")
             return
         }
 
-        refreshSelectedServiceHandle()
-        authorizationStatus = i18n.tr("Verifying Online Accounts authorization...")
-
-        if (!selectedEnabled && !selectedHasServiceHandle) {
-            if (retryServiceResolutionBeforePrompt()) {
-                return
-            }
-            page.authorizationRunning = false
-            page.waitingForSystemApproval = true
-            authorizationStatus = i18n.tr("Waiting for Ubuntu Touch Online Accounts to confirm permission for %1. If this does not finish, check that %1 is allowed for this account in System Settings > Accounts.").arg(page.appName)
-            return
-        }
         page.authorizationRunning = true
-
-        selectedService.authenticate({})
+        authorizationStatus = i18n.tr("Verifying Online Accounts authorization...")
+        selectedAccount.authenticate({})
     }
 
-    function retryAuthenticationBeforePrompt(message) {
-        if (authenticationRetryCount >= maxAuthenticationRetries) {
-            return false
-        }
+    function handleAuthenticationReply(authenticationData) {
+        page.authorizationRunning = false
 
-        authenticationRetryCount += 1
-        authenticationRetryPending = true
-        accountModelRefreshPending = true
-        waitingForSystemApproval = false
-        authorizationRunning = true
-        authorizationStatus = i18n.tr("Refreshing Ubuntu Touch account permission for %1...").arg(page.appName)
-        selectedService.objectHandle = null
-        accountServices.includeDisabled = false
-        accountModelRefreshTimer.restart()
-        return true
-    }
-
-    function finishAccountModelRefreshBeforeRetry() {
-        accountServices.includeDisabled = true
-        authenticationRetryTimer.restart()
-    }
-
-    function retryAuthenticationAfterStaleFailure() {
-        if (!authenticationRetryPending || selectedAccountId <= 0) {
+        if (authenticationData && authenticationData.errorCode !== undefined) {
+            handleAuthenticationError(authenticationData)
             return
         }
 
-        authenticationRetryPending = false
-        accountModelRefreshPending = false
-        selectedService.objectHandle = null
-        refreshSelectedServiceHandle()
-        authorizationStatus = i18n.tr("Verifying Online Accounts authorization...")
-        if (!selectedEnabled && !selectedHasServiceHandle) {
-            authorizationRunning = false
-            waitingForSystemApproval = true
+        page.waitingForSystemApproval = false
+        var userName = firstValue(authenticationData, ["UserName", "Username", "userName", "username"])
+
+        if (displayServerUrlIsMissing()) {
+            authorizationStatus = i18n.tr("Authorization succeeded, but the Ubuntu Touch account did not expose a server address for %1.").arg(page.appName)
+        } else {
+            authorizationStatus = i18n.tr("Authorization succeeded for %1. Credentials are available to the app, but were not displayed or stored.").arg(page.appName)
+        }
+
+        accountSettings.accountId = page.selectedAccountId
+        accountSettings.displayName = page.selectedDisplayName
+        accountSettings.providerId = page.providerIdForService(page.selectedServiceId)
+        accountSettings.serviceId = page.selectedServiceId
+        accountSettings.serverUrl = page.normalizeServerUrl(page.serverUrl)
+        accountSettings.avatarUrl = page.avatarUrl(accountSettings.serverUrl, userName)
+        page.accountAuthorized(
+            accountSettings.accountId,
+            accountSettings.displayName,
+            accountSettings.providerId,
+            accountSettings.serviceId,
+            accountSettings.serverUrl,
+            accountSettings.avatarUrl
+        )
+    }
+
+    function handleAuthenticationError(authenticationData) {
+        var errorCode = authenticationData.errorCode
+        if (errorCode === Account.ErrorCodePermissionDenied) {
+            page.waitingForSystemApproval = true
             authorizationStatus = i18n.tr("Ubuntu Touch Online Accounts did not allow %1 to use this account yet. Check that %1 is enabled for this account in System Settings > Accounts, then return here.").arg(page.appName)
             page.openSystemAccountsHelp()
-            return
+        } else if (errorCode === Account.ErrorCodeUserCanceled) {
+            authorizationStatus = i18n.tr("Authorization was canceled.")
+        } else {
+            page.waitingForSystemApproval = true
+            authorizationStatus = i18n.tr("Authorization failed. If the system did not show an Online Accounts prompt, open System Settings > Accounts and allow %1 for this account, then try again.").arg(page.appName)
+            page.openSystemAccountsHelp()
         }
-        selectedService.authenticate({})
-    }
-
-    function retryServiceResolutionBeforePrompt() {
-        if (serviceResolutionRetryCount >= maxServiceResolutionRetries) {
-            return false
-        }
-
-        serviceResolutionRetryCount += 1
-        authorizationStatus = i18n.tr("Checking account permission for %1...").arg(page.appName)
-        serviceResolutionRetryTimer.restart()
-        return true
     }
 
     function clearSelectedAccount() {
         page.authorizationRunning = false
         page.waitingForSystemApproval = false
-        page.authenticationRetryPending = false
-        page.authenticationRetryCount = 0
-        selectedService.objectHandle = null
+        selectedAccount = null
         selectedAccountId = 0
         selectedDisplayName = ""
-        selectedProviderName = ""
-        selectedProviderId = ""
-        selectedServiceName = ""
         selectedServiceId = ""
-        selectedServiceTypeId = ""
-        selectedEnabled = false
-        selectedHasServiceHandle = false
     }
 
     function systemAccountsDialogText() {
-        if (page.visibleCloudAccounts === 0) {
+        if (page.matchingAccountCount() === 0) {
             return i18n.tr("Open Ubuntu Touch System Settings manually, go to Accounts, add a Nextcloud or ownCloud account, then return to %1 and select it.").arg(page.appName)
         }
 
@@ -948,19 +656,22 @@ Page {
         })
     }
 
+    function refreshAccountModel() {
+        // Manager (and its cached account list) is only rebuilt when
+        // applicationId actually changes, so toggle it to force a fresh
+        // query after the user may have changed grants in System Settings.
+        accountModel.applicationId = ""
+        accountModel.applicationId = page.appApplicationId
+    }
+
     function retryAfterSystemApproval() {
         if (!page.waitingForSystemApproval || page.authorizationRunning || selectedAccountId <= 0) {
             return
         }
 
-        refreshSelectedServiceHandle()
-        if (selectedEnabled || selectedHasServiceHandle) {
-            authorizationStatus = i18n.tr("Account permission detected. Verifying access...")
-            page.waitingForSystemApproval = false
-            page.authenticateSelectedAccount()
-        } else {
-            authorizationStatus = i18n.tr("Waiting for account permission. If you already allowed %1, return here and wait a moment.").arg(page.appName)
-        }
+        authorizationStatus = i18n.tr("Verifying Online Accounts authorization...")
+        page.waitingForSystemApproval = false
+        page.authenticateSelectedAccountAfterCommit()
     }
 
     function commitServerUrlInput(action) {
@@ -970,40 +681,10 @@ Page {
         serverUrlCommitTimer.restart()
     }
 
-    function refreshSelectedServiceHandle() {
-        if (selectedAccountId <= 0 || selectedProviderId.length === 0) {
-            return
-        }
-
-        var appService = findPreferredAppService(selectedAccountId, selectedProviderId)
-        if (!appService.handle) {
-            return
-        }
-
-        selectedService.objectHandle = appService.handle
-        selectedServiceName = appService.serviceName
-        selectedServiceId = appService.serviceId
-        selectedServiceTypeId = appService.serviceTypeId
-        selectedEnabled = appService.enabled
-        selectedHasServiceHandle = appService.handle ? true : false
-    }
-
     function saveServerUrl() {
         var url = normalizeServerUrl(serverUrl)
         serverUrl = url
         accountSettings.serverUrl = url
-    }
-
-    function currentSetupSummary() {
-        if (accountSettings.accountId <= 0) {
-            return i18n.tr("No account is saved yet. Select a Nextcloud account below, authorize it, and verify access.")
-        }
-
-        return i18n.tr("%1 on %2\nproviderId=%3 serviceId=%4")
-            .arg(accountSettings.displayName.length > 0 ? accountSettings.displayName : i18n.tr("Saved account"))
-            .arg(accountSettings.serverUrl.length > 0 ? accountSettings.serverUrl : i18n.tr("server URL missing"))
-            .arg(accountSettings.providerId.length > 0 ? accountSettings.providerId : "-")
-            .arg(accountSettings.serviceId.length > 0 ? accountSettings.serviceId : "-")
     }
 
     function displayAccountName() {

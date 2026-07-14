@@ -270,7 +270,6 @@ Page {
             pageObject.shareFinished.connect(function() { pageStack.pop() })
             pageObject.shareFailed.connect(function(message) {
                 pageStack.pop()
-                console.log("NextNews ContentHub share failed: " + message)
             })
             return
         }
@@ -279,7 +278,6 @@ Page {
             pageObject.shareFinished.connect(function() { pageStack.pop() })
             pageObject.shareFailed.connect(function(message) {
                 pageStack.pop()
-                console.log("NextNews ContentHub share failed: " + message)
             })
         }
     }

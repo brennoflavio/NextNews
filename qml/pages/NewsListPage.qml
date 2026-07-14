@@ -101,7 +101,6 @@ Page {
         page.pendingAddFeedFolderName = ""
         page.addFeedNewFolderName = ""
         pendingFolderSelectTimer.stop()
-        console.log("NextNews AddFeed selected created folder folderId=" + resolvedFolderId)
         return true
     }
 

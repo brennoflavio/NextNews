@@ -5,6 +5,7 @@ Item {
     id: client
 
     property int requestGeneration: 0
+    property int requestTimeoutMs: 30000
 
     signal foldersLoaded(var folders, int generation)
     signal folderCreated(var folders, int generation)
@@ -20,15 +21,26 @@ Item {
     signal itemStatesUploaded(var itemIds, bool unread, int generation)
     signal failed(string message, int generation)
 
+    function armRequestTimeout(request, generation) {
+        var state = { "settled": false }
+        request.timeout = requestTimeoutMs
+        request.ontimeout = function() {
+            if (state.settled) {
+                return
+            }
+            state.settled = true
+            client.failed(i18n.tr("The server did not respond in time. Check the connection."), generation)
+        }
+        return state
+    }
+
     function fetchFolders(serverUrl, userName, secret) {
         requestJson("GET", NewsApiCore.foldersUrl(serverUrl), userName, secret, null, function(responseText, generation) {
             var result = NewsApiCore.parseFolders(responseText)
             if (!result.ok) {
-                console.log("NextNews NewsApi parse folders error=" + result.error)
                 failed(i18n.tr("Could not parse folders from Nextcloud News."), generation)
                 return
             }
-            console.log("NextNews NewsApi GET /folders success count=" + result.folders.length)
             foldersLoaded(result.folders, generation)
         }, "GET /folders")
     }
@@ -38,18 +50,15 @@ Item {
         requestJson("POST", NewsApiCore.foldersUrl(serverUrl), userName, secret, payload, function(responseText, generation) {
             var result = NewsApiCore.parseFolders(responseText)
             if (!result.ok) {
-                console.log("NextNews NewsApi parse created folder response error=" + result.error)
                 failed(i18n.tr("Folder was created, but NextNews could not read the updated folder list. Refresh and try again."), generation)
                 return
             }
-            console.log("NextNews NewsApi POST /folders success count=" + result.folders.length)
             folderCreated(result.folders, generation)
         }, "POST /folders")
     }
 
     function deleteFolder(serverUrl, userName, secret, folderId) {
         requestJson("DELETE", NewsApiCore.folderUrl(serverUrl, folderId), userName, secret, null, function(responseText, generation) {
-            console.log("NextNews NewsApi DELETE /folders/{id} success folderId=" + folderId)
             folderDeleted(Number(folderId || 0), generation)
         }, "DELETE /folders/{id}")
     }
@@ -57,7 +66,6 @@ Item {
     function renameFolder(serverUrl, userName, secret, folderId, name) {
         var payload = NewsApiCore.renameFolderPayload(name)
         requestJson("PUT", NewsApiCore.folderUrl(serverUrl, folderId), userName, secret, payload, function(responseText, generation) {
-            console.log("NextNews NewsApi PUT /folders/{id} success folderId=" + folderId)
             folderRenamed(Number(folderId || 0), payload.name, generation)
         }, "PUT /folders/{id}")
     }
@@ -66,11 +74,9 @@ Item {
         requestJson("GET", NewsApiCore.feedsUrl(serverUrl), userName, secret, null, function(responseText, generation) {
             var result = NewsApiCore.parseFeeds(responseText)
             if (!result.ok) {
-                console.log("NextNews NewsApi parse feeds error=" + result.error)
                 failed(i18n.tr("Could not parse feeds from Nextcloud News."), generation)
                 return
             }
-            console.log("NextNews NewsApi GET /feeds success count=" + result.feeds.length)
             feedsLoaded(result.feeds, generation)
         }, "GET /feeds")
     }
@@ -78,7 +84,6 @@ Item {
     function createFeed(serverUrl, userName, secret, feedUrl, folderId) {
         var payload = NewsApiCore.createFeedPayload(feedUrl, folderId)
         requestForm("POST", NewsApiCore.feedsUrl(serverUrl), userName, secret, payload, function(responseText, generation) {
-            console.log("NextNews NewsApi POST /feeds success folderId=" + payload.folderId)
             feedCreated(generation)
         }, "POST /feeds")
     }
@@ -86,7 +91,6 @@ Item {
     function moveFeed(serverUrl, userName, secret, feedId, folderId) {
         var payload = NewsApiCore.moveFeedPayload(folderId)
         requestJson("PUT", NewsApiCore.moveFeedUrl(serverUrl, feedId), userName, secret, payload, function(responseText, generation) {
-            console.log("NextNews NewsApi PUT /feeds/{id}/move success feedId=" + feedId + " folderId=" + payload.folderId)
             feedMoved(generation)
         }, "PUT /feeds/{id}/move")
     }
@@ -94,14 +98,12 @@ Item {
     function renameFeed(serverUrl, userName, secret, feedId, title) {
         var payload = NewsApiCore.renameFeedPayload(title)
         requestJson("PUT", NewsApiCore.renameFeedUrl(serverUrl, feedId), userName, secret, payload, function(responseText, generation) {
-            console.log("NextNews NewsApi PUT /feeds/{id}/rename success feedId=" + feedId)
             feedRenamed(Number(feedId || 0), payload.feedTitle, generation)
         }, "PUT /feeds/{id}/rename")
     }
 
     function deleteFeed(serverUrl, userName, secret, feedId) {
         requestJson("DELETE", NewsApiCore.feedUrl(serverUrl, feedId), userName, secret, null, function(responseText, generation) {
-            console.log("NextNews NewsApi DELETE /feeds/{id} success feedId=" + feedId)
             feedDeleted(Number(feedId || 0), generation)
         }, "DELETE /feeds/{id}")
     }
@@ -110,11 +112,9 @@ Item {
         requestJson("GET", NewsApiCore.itemsUrl(serverUrl, type, id, getRead), userName, secret, null, function(responseText, generation) {
             var result = NewsApiCore.parseItems(responseText)
             if (!result.ok) {
-                console.log("NextNews NewsApi parse items error=" + result.error)
                 failed(i18n.tr("Could not parse articles from Nextcloud News."), generation)
                 return
             }
-            console.log("NextNews NewsApi GET /items success count=" + result.items.length + " type=" + type + " id=" + id)
             itemsLoaded(result.items, generation)
         }, "GET /items")
     }
@@ -122,7 +122,6 @@ Item {
     function markItemRead(serverUrl, userName, secret, itemId, read) {
         var payload = NewsApiCore.idsPayload([itemId])
         requestJson("PUT", NewsApiCore.markReadUrl(serverUrl, read), userName, secret, payload, function(responseText, generation) {
-            console.log("NextNews NewsApi PUT read-state success itemId=" + itemId + " read=" + read)
             itemStateUploaded(itemId, !read, undefined, generation)
         }, read ? "PUT /items/read/multiple" : "PUT /items/unread/multiple")
     }
@@ -130,7 +129,6 @@ Item {
     function markItemsRead(serverUrl, userName, secret, itemIds, read) {
         var payload = NewsApiCore.idsPayload(itemIds)
         requestJson("PUT", NewsApiCore.markReadUrl(serverUrl, read), userName, secret, payload, function(responseText, generation) {
-            console.log("NextNews NewsApi PUT read-state batch success count=" + payload.items.length + " read=" + read)
             itemStatesUploaded(payload.items, !read, generation)
         }, read ? "PUT /items/read/multiple" : "PUT /items/unread/multiple")
     }
@@ -138,7 +136,6 @@ Item {
     function starItem(serverUrl, userName, secret, item, starred) {
         var payload = NewsApiCore.starPayload([item])
         requestJson("PUT", NewsApiCore.starUrl(serverUrl, starred), userName, secret, payload, function(responseText, generation) {
-            console.log("NextNews NewsApi PUT star-state success itemId=" + item.itemId + " starred=" + starred)
             itemStateUploaded(item.itemId, undefined, starred, generation)
         }, starred ? "PUT /items/star/multiple" : "PUT /items/unstar/multiple")
     }
@@ -146,14 +143,14 @@ Item {
     function requestJson(method, url, userName, secret, payload, onSuccess, label) {
         var generation = requestGeneration
         var request = new XMLHttpRequest()
-        console.log("NextNews NewsApi " + label + " requesting serverUrlConfigured=" + (url.indexOf("http") === 0 ? "true" : "false"))
+        var requestState = armRequestTimeout(request, generation)
 
         request.onreadystatechange = function() {
-            if (request.readyState !== XMLHttpRequest.DONE) {
+            if (request.readyState !== XMLHttpRequest.DONE || requestState.settled) {
                 return
             }
+            requestState.settled = true
             if (request.status < 200 || request.status >= 300) {
-                console.log("NextNews NewsApi " + label + " error status=" + request.status)
                 failed(i18n.tr("Nextcloud News request failed with HTTP %1.").arg(request.status), generation)
                 return
             }
@@ -174,14 +171,14 @@ Item {
     function requestForm(method, url, userName, secret, payload, onSuccess, label) {
         var generation = requestGeneration
         var request = new XMLHttpRequest()
-        console.log("NextNews NewsApi " + label + " requesting serverUrlConfigured=" + (url.indexOf("http") === 0 ? "true" : "false"))
+        var requestState = armRequestTimeout(request, generation)
 
         request.onreadystatechange = function() {
-            if (request.readyState !== XMLHttpRequest.DONE) {
+            if (request.readyState !== XMLHttpRequest.DONE || requestState.settled) {
                 return
             }
+            requestState.settled = true
             if (request.status < 200 || request.status >= 300) {
-                console.log("NextNews NewsApi " + label + " error status=" + request.status)
                 failed(feedCreateErrorMessage(request.status, request.responseText || ""), generation)
                 return
             }

@@ -23,6 +23,11 @@ class ProjectIdentityTests(unittest.TestCase):
         self.assertEqual(manifest["hooks"]["nextnews"]["content-hub"], "nextnews-contenthub.json")
         self.assertEqual(manifest["hooks"]["nextnews"]["desktop"], "nextnews.desktop")
 
+    def test_release_qml_has_no_runtime_console_logging(self):
+        qml_paths = list((ROOT / "qml").rglob("*.qml"))
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in qml_paths)
+        self.assertNotIn("console.log", combined)
+
     def test_online_accounts_service_ids_are_current(self):
         page = read_text("qml/pages/AccountSelectionPage.qml")
         common_page = read_text("vendor/NextCommon/qml/NextCommon/AccountPage.qml")
@@ -36,15 +41,15 @@ class ProjectIdentityTests(unittest.TestCase):
         self.assertIn("nextnews.cloudsite_nextnews_owncloud", page)
         self.assertIn("newsController.applyAccountSelection(", page)
 
-        self.assertIn("findPreferredAppService", common_page)
+        self.assertIn("AccountModel {", common_page)
         self.assertIn("openSystemAccountsDialog", common_page)
         self.assertIn('Qt.openUrlExternally("settings:///system/online-accounts")', common_page)
         self.assertIn("function systemAccountsDialogText()", common_page)
         self.assertIn("function retryAfterSystemApproval()", common_page)
         self.assertIn("waitingForSystemApproval", common_page)
-        self.assertIn("selectedHasServiceHandle", common_page)
-        self.assertIn("if (!selectedEnabled && !selectedHasServiceHandle)", common_page)
-        self.assertIn("if (selectedEnabled || selectedHasServiceHandle)", common_page)
+        self.assertIn("Account.ErrorCodePermissionDenied", common_page)
+        self.assertIn("accountSettings.accountId === model.accountId", common_page)
+        self.assertIn("accountSettings.serviceId === model.serviceId", common_page)
         self.assertIn("page.waitingForSystemApproval = true", common_page)
         self.assertIn("PopupUtils.open(openSystemAccountsDialog)", common_page)
         self.assertIn("visible: page.waitingForSystemApproval", common_page)
@@ -77,7 +82,7 @@ class ProjectIdentityTests(unittest.TestCase):
         self.assertIn('import "qrc:/NextCommon" as NextCommon', session)
         self.assertIn("NextCommon.AccountSessionAdapter", session)
         self.assertIn('logPrefix: "NextNews"', session)
-        self.assertIn("AccountServiceModel", common_session)
+        self.assertIn("AccountModel", common_session)
         self.assertIn("var accountChanged = currentAccountId !== accountId", common_session)
         self.assertIn("cachedSecret = \"\"", common_session)
         self.assertIn("pendingCallback = null", common_session)
@@ -130,8 +135,8 @@ class ProjectIdentityTests(unittest.TestCase):
         main = read_text("main.cpp")
         cmake = read_text("CMakeLists.txt")
 
-        self.assertEqual(read_text("vendor/NextCommon/qml/NextCommon/VERSION").strip(), "0.2.1")
-        self.assertEqual(read_text("qml/UTControls/VERSION").strip(), "0.2.4")
+        self.assertEqual(read_text("vendor/NextCommon/qml/NextCommon/VERSION").strip(), "0.3.1")
+        self.assertEqual(read_text("qml/UTControls/VERSION").strip(), "0.2.6")
         self.assertFalse((ROOT / "vendor/NextCommon/.git").exists())
         self.assertFalse((ROOT / ".gitmodules").exists())
         self.assertIn('view.engine()->addImportPath(QStringLiteral("qrc:/"))', main)
@@ -187,7 +192,7 @@ class ProjectIdentityTests(unittest.TestCase):
         language_page = read_text("qml/pages/LanguageSelectionPage.qml")
         readme = read_text("README.md")
 
-        for language_code in ["sv", "ca", "de", "fr", "nl", "da", "nb", "es", "fi"]:
+        for language_code in ["sv", "ca", "de", "fr", "nl", "da", "nb", "es", "fi", "it", "pl", "ru", "uk"]:
             self.assertIn(f'"{language_code}"', language_page)
             self.assertIn(f'QStringLiteral("{language_code}")', main)
             self.assertTrue((ROOT / "po" / f"{language_code}.po").exists())
@@ -295,7 +300,7 @@ class NewsApiContractTests(unittest.TestCase):
         self.assertIn("property int accountRequestGeneration: 0", controller)
         self.assertIn("function stopAccountActivity()", controller)
         self.assertIn("function isCurrentApiGeneration(generation)", controller)
-        self.assertIn("ignored stale", controller)
+        self.assertIn("if (!controller.isCurrentApiGeneration(generation)) {\n                return\n            }", controller)
         for snippet in [
             "feedOptionsDialog",
             "folderOptionsDialog",
@@ -612,7 +617,8 @@ class UiContractTests(unittest.TestCase):
             "qrc:/assets/logo.svg",
         ]:
             self.assertIn(snippet, page)
-        self.assertIn('set(NEXTNEWS_VERSION "0.3.0")', cmake)
+        self.assertIn('set(NEXTNEWS_VERSION "0.4.0")', cmake)
+        self.assertIn("## 0.4.0", changelog)
         self.assertIn("## 0.3.0", changelog)
         self.assertIn("## 0.2.0", changelog)
         self.assertIn("## 0.1.8", changelog)

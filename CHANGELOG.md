@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-07-14
+
+Translation and reliability release.
+
+- Updated `vendor/NextCommon` and `qml/UTControls` to their current shared
+  content, picking up the Lomiri.OnlineAccounts 2.0 migration (avoids a
+  native crash risk when an account is not yet approved or has its approval
+  revoked mid-session) and other suite-wide fixes.
+- Fixed `main.cpp`'s `localeForLanguageCode()` only mapping some languages -
+  Italian, Polish, Russian, and Ukrainian were missing, and would have
+  silently fallen back to the system locale if selected.
+- Added a request timeout to all News API calls so a stalled connection can
+  no longer wedge the app until restart.
+- Removed 61 leftover diagnostic `console.log` calls from release code, and
+  added a contract test to catch any that come back.
+- Added Italian, Polish, Russian, and Ukrainian as language choices, and
+  completed translation coverage for all 13 supported languages - most
+  non-English, non-Swedish languages were only partially translated (as low
+  as ~15% of strings), and a review pass also fixed a number of existing
+  translations that had incorrect content or missing placeholders.
+- Fixed two contract tests left over from an earlier account-module version
+  bump that still checked internal details of an already-replaced Online
+  Accounts API.
+- Dropped "but simple" from the tagline.
+
 ## 0.3.0 - 2026-07-03
 
 Polish and platform-alignment release.
