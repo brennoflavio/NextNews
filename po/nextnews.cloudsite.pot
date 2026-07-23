@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nextnews.cloudsite\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-14 19:10+0000\n"
+"POT-Creation-Date: 2026-07-23 22:07+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -498,21 +498,8 @@ msgstr ""
 msgid "Yesterday"
 msgstr ""
 
-#: qml/pages/AboutPage.qml:11 qml/pages/NewsListPage.qml:1589
-#: vendor/NextCommon/qml/NextCommon/AboutPage.qml:18
-msgid "About"
-msgstr ""
-
-#: qml/pages/AboutPage.qml:44 qml/pages/NewsListPage.qml:1369
+#: qml/pages/AboutPage.qml:5 qml/pages/NewsListPage.qml:1369
 msgid "NextNews"
-msgstr ""
-
-#: qml/pages/AboutPage.qml:52 vendor/NextCommon/qml/NextCommon/AboutPage.qml:59
-msgid "Version %1"
-msgstr ""
-
-#: qml/pages/AboutPage.qml:72 vendor/NextCommon/qml/NextCommon/AboutPage.qml:80
-msgid "License"
 msgstr ""
 
 #: qml/pages/ArticleDetailPage.qml:20
@@ -838,6 +825,11 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
+#: qml/pages/NewsListPage.qml:1589
+#: vendor/NextCommon/qml/NextCommon/AboutPage.qml:18
+msgid "About"
+msgstr ""
+
 #: qml/pages/NewsListPage.qml:1626
 msgid "%1m"
 msgstr ""
@@ -910,6 +902,14 @@ msgstr ""
 
 #: qml/pages/SettingsPage.qml:257
 msgid "Both"
+msgstr ""
+
+#: vendor/NextCommon/qml/NextCommon/AboutPage.qml:59
+msgid "Version %1"
+msgstr ""
+
+#: vendor/NextCommon/qml/NextCommon/AboutPage.qml:80
+msgid "License"
 msgstr ""
 
 #: vendor/NextCommon/qml/NextCommon/AboutPage.qml:105

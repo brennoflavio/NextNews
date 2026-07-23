@@ -26,6 +26,10 @@ Translation and reliability release.
   bump that still checked internal details of an already-replaced Online
   Accounts API.
 - Dropped "but simple" from the tagline.
+- Fixed the About page missing its License and Disclaimer sections. It had
+  drifted into a hand-written duplicate of the shared About page used by
+  the rest of the suite; it is now a thin wrapper around that shared
+  component again, matching NextTasks/NextNotes.
 
 ## 0.3.0 - 2026-07-03
 
