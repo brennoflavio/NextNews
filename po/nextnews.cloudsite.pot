@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nextnews.cloudsite\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 22:07+0000\n"
+"POT-Creation-Date: 2026-08-18 19:57+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -137,7 +137,7 @@ msgstr ""
 
 #: qml/backend/ArticleShareExportPage.qml:7
 #: qml/backend/ArticleShareExportPageUbuntu.qml:7
-#: qml/pages/ArticleDetailPage.qml:26
+#: qml/pages/ArticleDetailPage.qml:27
 msgid "Share"
 msgstr ""
 
@@ -148,8 +148,8 @@ msgstr ""
 
 #: qml/backend/ArticleShareExportPage.qml:46
 #: qml/backend/ArticleShareExportPageUbuntu.qml:46
-#: qml/pages/ArticleDetailPage.qml:15 qml/pages/ArticleDetailPage.qml:240
-#: qml/pages/ArticleDetailPage.qml:242
+#: qml/pages/ArticleDetailPage.qml:16 qml/pages/ArticleDetailPage.qml:297
+#: qml/pages/ArticleDetailPage.qml:299
 msgid "Article"
 msgstr ""
 
@@ -473,7 +473,7 @@ msgstr ""
 msgid "Views"
 msgstr ""
 
-#: qml/backend/NewsController.qml:1186 qml/pages/ArticleDetailPage.qml:133
+#: qml/backend/NewsController.qml:1186 qml/pages/ArticleDetailPage.qml:135
 #: qml/pages/NewsListPage.qml:1131
 msgid "Unread"
 msgstr ""
@@ -482,11 +482,11 @@ msgstr ""
 msgid "Starred"
 msgstr ""
 
-#: qml/backend/NewsController.qml:1189 qml/pages/NewsListPage.qml:1430
+#: qml/backend/NewsController.qml:1189 qml/pages/NewsListPage.qml:1431
 msgid "Folders"
 msgstr ""
 
-#: qml/backend/NewsController.qml:1192 qml/pages/NewsListPage.qml:1455
+#: qml/backend/NewsController.qml:1192 qml/pages/NewsListPage.qml:1456
 msgid "Feeds"
 msgstr ""
 
@@ -498,52 +498,52 @@ msgstr ""
 msgid "Yesterday"
 msgstr ""
 
-#: qml/pages/AboutPage.qml:5 qml/pages/NewsListPage.qml:1369
+#: qml/pages/AboutPage.qml:5 qml/pages/NewsListPage.qml:1370
 msgid "NextNews"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:20
+#: qml/pages/ArticleDetailPage.qml:21
 msgid "Open"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:32 qml/pages/NewsListPage.qml:982
+#: qml/pages/ArticleDetailPage.qml:33 qml/pages/NewsListPage.qml:982
 #: qml/pages/NewsListPage.qml:996
 msgid "Star"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:32 qml/pages/NewsListPage.qml:982
+#: qml/pages/ArticleDetailPage.qml:33 qml/pages/NewsListPage.qml:982
 #: qml/pages/NewsListPage.qml:996
 msgid "Unstar"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:40 qml/pages/NewsListPage.qml:983
+#: qml/pages/ArticleDetailPage.qml:41 qml/pages/NewsListPage.qml:983
 #: qml/pages/NewsListPage.qml:997
 msgid "Mark read"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:40 qml/pages/NewsListPage.qml:983
+#: qml/pages/ArticleDetailPage.qml:41 qml/pages/NewsListPage.qml:983
 #: qml/pages/NewsListPage.qml:997
 msgid "Mark unread"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:70
+#: qml/pages/ArticleDetailPage.qml:72
 msgid "Article not cached"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:133 qml/pages/NewsListPage.qml:1131
+#: qml/pages/ArticleDetailPage.qml:135 qml/pages/NewsListPage.qml:1131
 msgid "Read"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:146
+#: qml/pages/ArticleDetailPage.qml:148
 msgid "Pending sync"
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:153 qml/pages/ArticleDetailPage.qml:211
+#: qml/pages/ArticleDetailPage.qml:156 qml/pages/ArticleDetailPage.qml:268
 msgid "Open this article online once to cache it for offline reading."
 msgstr ""
 
-#: qml/pages/ArticleDetailPage.qml:181 qml/pages/ArticleDetailPage.qml:190
-#: qml/pages/ArticleDetailPage.qml:206 qml/pages/NewsListPage.qml:1111
+#: qml/pages/ArticleDetailPage.qml:238 qml/pages/ArticleDetailPage.qml:247
+#: qml/pages/ArticleDetailPage.qml:263 qml/pages/NewsListPage.qml:1111
 msgid "Unknown feed"
 msgstr ""
 
@@ -605,7 +605,7 @@ msgstr ""
 msgid "AI-assisted translation"
 msgstr ""
 
-#: qml/pages/LanguageSelectionPage.qml:28 qml/pages/NewsListPage.qml:1568
+#: qml/pages/LanguageSelectionPage.qml:28 qml/pages/NewsListPage.qml:1569
 #: vendor/NextCommon/qml/NextCommon/LanguagePage.qml:14
 msgid "Language"
 msgstr ""
@@ -799,54 +799,54 @@ msgstr ""
 msgid "Pending"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1315
+#: qml/pages/NewsListPage.qml:1316
 msgid "No articles to show"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1315
+#: qml/pages/NewsListPage.qml:1316
 msgid "No matching articles"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1323
+#: qml/pages/NewsListPage.qml:1324
 msgid "Try another feed or clear search."
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1324
+#: qml/pages/NewsListPage.qml:1325
 msgid "Connect to Nextcloud while online to cache articles on this device."
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1575
+#: qml/pages/NewsListPage.qml:1576
 #: vendor/NextCommon/qml/NextCommon/AccountPage.qml:160
 msgid "Account"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1582 qml/pages/SettingsPage.qml:15
+#: qml/pages/NewsListPage.qml:1583 qml/pages/SettingsPage.qml:15
 #: vendor/NextCommon/qml/NextCommon/SettingsShell.qml:8
 msgid "Settings"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1589
+#: qml/pages/NewsListPage.qml:1590
 #: vendor/NextCommon/qml/NextCommon/AboutPage.qml:18
 msgid "About"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1626
+#: qml/pages/NewsListPage.qml:1627
 msgid "%1m"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1629
+#: qml/pages/NewsListPage.qml:1630
 msgid "%1h"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1667
+#: qml/pages/NewsListPage.qml:1679
 msgid "Sync: %1"
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1670
+#: qml/pages/NewsListPage.qml:1682
 msgid "%1 local changes are waiting for sync."
 msgstr ""
 
-#: qml/pages/NewsListPage.qml:1673
+#: qml/pages/NewsListPage.qml:1685
 msgid "No status message."
 msgstr ""
 

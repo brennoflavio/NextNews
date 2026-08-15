@@ -7,6 +7,7 @@ Page {
     id: page
 
     property int itemId: 0
+    property var itemIds: []
     property var newsController
     property var article: newsController ? newsController.getItem(itemId) : null
 
@@ -49,6 +50,7 @@ Page {
     }
 
     Flickable {
+        id: articleFlickable
         anchors {
             top: header.bottom
             left: parent.left
@@ -57,7 +59,7 @@ Page {
             margins: units.gu(2)
         }
         contentWidth: width
-        contentHeight: contentColumn.height
+        contentHeight: Math.max(height, contentColumn.height)
         clip: true
 
         Column {
@@ -149,6 +151,7 @@ Page {
             }
 
             Text {
+                id: bodyText
                 width: parent.width
                 text: article ? page.articleBodyRichText() : page.escapeHtml(i18n.tr("Open this article online once to cache it for offline reading."))
                 textFormat: Text.RichText
@@ -160,6 +163,41 @@ Page {
             }
 
         }
+
+        MouseArea {
+            anchors.fill: parent
+            property real pressX: 0
+            property real pressY: 0
+            property bool movedHorizontally: false
+            preventStealing: movedHorizontally
+            onPressed: {
+                pressX = mouse.x
+                pressY = mouse.y
+                movedHorizontally = false
+            }
+            onPositionChanged: {
+                var dx = mouse.x - pressX
+                var dy = mouse.y - pressY
+                if (Math.abs(dx) > units.gu(1.5) && Math.abs(dx) > Math.abs(dy) * 1.25) {
+                    movedHorizontally = true
+                }
+            }
+            onReleased: {
+                if (movedHorizontally && Math.abs(mouse.x - pressX) > width * 0.25) {
+                    page.openRelativeItem(mouse.x < pressX ? 1 : -1)
+                }
+            }
+            onClicked: {
+                if (movedHorizontally) {
+                    return
+                }
+                var point = mapToItem(bodyText, mouse.x, mouse.y)
+                var link = bodyText.linkAt(point.x, point.y)
+                if (link.length > 0) {
+                    Qt.openUrlExternally(link)
+                }
+            }
+        }
     }
 
     Component.onCompleted: {
@@ -167,6 +205,25 @@ Page {
             newsController.markRead(itemId, true)
             article = newsController.getItem(itemId)
         }
+    }
+
+    function openRelativeItem(offset) {
+        var index = itemIds.indexOf(itemId)
+        var nextItemId = index >= 0 ? itemIds[index + offset] : undefined
+        if (nextItemId === undefined) {
+            return
+        }
+        var nextArticle = newsController.getItem(nextItemId)
+        if (!nextArticle) {
+            return
+        }
+        itemId = nextItemId
+        article = nextArticle
+        if (article && article.unread) {
+            newsController.markRead(itemId, true)
+            article = newsController.getItem(itemId)
+        }
+        articleFlickable.contentY = 0
     }
 
     function dateText(seconds) {
